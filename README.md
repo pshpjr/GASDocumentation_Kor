@@ -1,4 +1,7 @@
-﻿# GASDocumentation
+﻿# 들어가기 전에
+번역기를 번역한 것
+ 
+# GASDocumentation
 My understanding of Unreal Engine 5's GameplayAbilitySystem plugin (GAS) with a simple multiplayer sample project. This is not official documentation and neither this project nor myself are affiliated with Epic Games. I make no guarantee for the accuracy of this information.
 
 The goal of this documentation is to explain the major concepts and classes in GAS and provide some additional commentary based on my experience with it. There is a lot of 'tribal knowledge' of GAS among users in the community and I aim to share all of mine here.
@@ -12,13 +15,13 @@ The best documentation will always be the plugin source code.
 <a name="table-of-contents"></a>
 ## Table of Contents
 
-> 1. [Intro to the GameplayAbilitySystem Plugin](#intro)
+> 1. [GameplayAbilitySystem Plugin 소개](#intro)
 > 1. [Sample Project](#sp)
 > 1. [Setting Up a Project Using GAS](#setup)
 > 1. [Concepts](#concepts)  
 >    4.1 [Ability System Component](#concepts-asc)  
 >    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;4.1.1 [Replication Mode](#concepts-asc-rm)  
->    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;4.1.2 [Setup and Initialization](#concepts-asc-setup)  
+>    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;4.1.2 [설정 및 초기화](#concepts-asc-setup)  
 >    4.2 [Gameplay Tags](#concepts-gt)  
 >    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;4.2.1 [Responding to Changes in Gameplay Tags](#concepts-gt-change)  
 >    4.3 [Attributes](#concepts-a)  
@@ -168,38 +171,41 @@ The best documentation will always be the plugin source code.
 <a name="intro"></a>
 ## 1. Intro to the GameplayAbilitySystem Plugin
 From the [Official Documentation](https://docs.unrealengine.com/en-US/Gameplay/GameplayAbilitySystem/index.html):
->The Gameplay Ability System is a highly-flexible framework for building abilities and attributes of the type you might find in an RPG or MOBA title. You can build actions or passive abilities for the characters in your games to use, status effects that can build up or wear down various attributes as a result of these actions, implement "cooldown" timers or resource costs to regulate the usage of these actions, change the level of the ability and its effects at each level, activate particle or sound effects, and more. Put simply, this system can help you to design, implement, and efficiently network in-game abilities as simple as jumping or as complex as your favorite character's ability set in any modern RPG or MOBA title.
+>게임플레이 능력 시스템은 RPG나 MOBA 타이틀에서 볼 수 있는 유형의 능력과 속성을 구축하기 위한 매우 유연한 프레임워크입니다. 게임의 캐릭터가 사용할 액션이나 패시브 능력, 이러한 액션의 결과로 다양한 속성을 생성하거나 약화시킬 수 있는 상태 효과(디버프), 이러한 액션의 사용을 규제하기 위해 "쿨다운" 타이머 또는 리소스 비용(마나)을 구현할 수 있습니다. 각 레벨에서 능력과 그 효과의 수준을 변경하고(스킬 레벨업) 입자 또는 음향 효과를 활성화하는 등의 작업을 수행합니다. 간단히 말해서, 이 시스템은 현대 RPG 또는 MOBA 타이틀에 설정된 좋아하는 캐릭터의 능력만큼 복잡하거나 점프처럼 단순한 게임 내 능력을 설계, 구현 및 효율적으로 네트워크화하는 데 도움이 될 수 있습니다.
 
-The GameplayAbilitySystem plugin is developed by Epic Games and comes with Unreal Engine 5 (UE5). It has been battle tested in AAA commercial games such as Paragon and Fortnite among others.
+GameplayAbilitySystem 플러그인은 Epic Games에서 개발했으며 Unreal Engine 5(UE5)와 함께 제공됩니다. Paragon 및 Fortnite와 같은 AAA 상용 게임에서 전투 테스트를 거쳤습니다.
 
-The plugin provides an out-of-the-box solution in single and multiplayer games for:
-* Implementing level-based character abilities or skills with optional costs and cooldowns ([GameplayAbilities](#concepts-ga))
-* Manipulating numerical `Attributes` belonging to actors ([Attributes](#concepts-a))
-* Applying status effects to actors ([GameplayEffects](#concepts-ge))
-* Applying `GameplayTags` to actors ([GameplayTags](#concepts-gt))
-* Spawning visual or sound effects ([GameplayCues](#concepts-gc))
-* Replication of everything mentioned above
+플러그인은 싱글 및 멀티플레이어 게임에서 다음과 같은 즉시 사용 가능한 솔루션을 제공합니다.:
+* 옵션 비용 및 재사용 대기 시간으로 레벨 기반 캐릭터 능력 또는 기술 구현 ([GameplayAbilities](#concepts-ga))
+* 액터에 속하는 `Attributes` 조작 ([Attributes](#concepts-a))
+* 액터에 상태 효과 적용 ([GameplayEffects](#concepts-ge))
+* 액터에 `GameplayTags` 적용 ([GameplayTags](#concepts-gt))
+* 시각 효과 또는 음향 효과 생
+성s ([GameplayCues](#concepts-gc))
+* 위에서 언급한 모든 것의 Replication
 
-In multiplayer games, GAS provides support for [client-side prediction](#concepts-p) of:
-* Ability activation
-* Playing animation montages
-* Changes to `Attributes`
-* Applying `GameplayTags`
+멀티플레이어 게임에서 GAS는 다음[client-side prediction](#concepts-p)을 지원합니다:
+* 능력 활성화
+* 애니메이션 몽타주 재생
+* `Attributes` 변경
+* `GameplayTags` 적용
 * Spawning `GameplayCues`
 * Movement via `RootMotionSource` functions connected to the `CharacterMovementComponent`.
 
-**GAS must be set up in C++**, but `GameplayAbilities` and `GameplayEffects` can be created in Blueprint by the designers.
+**GAS 는 C++로 설정해야 하지만**, `GameplayAbilities`와 `GameplayEffects`는 디자이너가 Blueprint에서 만들 수 있습니다.
 
-Current issues with GAS:
-* `GameplayEffect` latency reconciliation (can't predict ability cooldowns resulting in players with higher latencies having lower rate of fire for low cooldown abilities compared to players with lower latencies).
+
+GAS의 현재 문제:
+* `GameplayEffect` 대기 시간 조정(능력 재사용 대기시간을 예측할 수 없음으로 인해 대기 시간이 긴 플레이어는 대기 시간이 짧은 플레이어에 비해 낮은 재사용 대기시간 능력에 대한 발사 속도가 낮아집니다.)(쿨타임 짧은 능력을 자주 쓸 수 없다)
 * Cannot predict the removal of `GameplayEffects`. We can however predict adding `GameplayEffects` with the inverse effects, effectively removing them. This is not always appropriate or feasible and still remains an issue.
-* Lack of boilerplate templates, multiplayer examples, and documentation. Hopefully this helps with that!
+* 표준 템플릿, 멀티플레이어 예제 및 문서가 부족합니다. 바라건대 이것이 도움이됩니다!
+
 
 **[⬆ Back to Top](#table-of-contents)**
 
 <a name="sp"></a>
 ## 2. Sample Project
-A multiplayer third person shooter sample project is included with this documentation aimed at people new to the GameplayAbilitySystem Plugin but not new to Unreal Engine 5. Users are expected to know C++, Blueprints, UMG, Replication, and other intermediate topics in UE5. This project provides an example of how to set up a basic third person shooter multiplayer-ready project with the `AbilitySystemComponent` (`ASC`) on the `PlayerState` class for player/AI controlled heroes and the `ASC` on the `Character` class for AI controlled minions.
+이 문서에는 GameplayAbilitySystem 플러그인을 처음 사용하지만 Unreal Engine 5는 사용해본 사람들을 대상으로 하는 멀티플레이어 3인칭 슈팅 샘플 프로젝트가 포함되어 있습니다. 사용자는 UE5의 C++, 블루프린트, UMG, 복제 및 기타 중간 주제에 대해 알고 있어야 합니다.  This project provides an example of how to set up a basic third person shooter multiplayer-ready project with the `AbilitySystemComponent` (`ASC`) on the `PlayerState` class for player/AI controlled heroes and the `ASC` on the `Character` class for AI controlled minions.
 
 The goal is to keep this project simple while showing the GAS basics and demonstrating some commonly requested abilities with well-commented code. Because of its beginner focus, the project does not show advanced topics like [predicting projectiles](#concepts-p-spawn).
 
@@ -227,19 +233,19 @@ Concepts demonstrated:
 * Static `GameplayCues` (FireGun projectile impact particle effect)
 * Actor `GameplayCues` (Sprint and Stun particle effects)
 
-The hero class has the following abilities:
+hero class는 다음 능력을 가지고 있습니다. :
 
 | Ability                    | Input Bind          | Predicted  | C++ / Blueprint | Description                                                                                                                                                                  |
 | -------------------------- | ------------------- | ---------- | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Jump                       | Space Bar           | Yes        | C++             | Makes the hero jump.                                                                                                                                                         |
-| Gun                        | Left Mouse Button   | No         | C++             | Fires a projectile from the hero's gun. The animation is predicted but the projectile is not.                                                                                |
-| Aim Down Sights            | Right Mouse Button  | Yes        | Blueprint       | While the button is held, the hero will walk slower and the camera will zoom in to allow more precise shots with the gun.                                                    |
-| Sprint                     | Left Shift          | Yes        | Blueprint       | While the button is held, the hero will run faster draining stamina.                                                                                                         |
-| Forward Dash               | Q                   | Yes        | Blueprint       | The hero dashes forward at the cost of stamina.                                                                                                                              |
-| Passive Armor Stacks       | Passive             | No         | Blueprint       | Every 4 seconds the hero gains a stack of armor up to a maximum of 4 stacks. Receiving damage removes one stack of armor.                                                    |
-| Meteor                     | R                   | No         | Blueprint       | Player targets a location to drop a meteor on the enemies causing damage and stunning them. The targeting is predicted while spawning the meteor is not.                     |
+| Gun                        | Left Mouse Button   | No         | C++             | 투사체를 발사함. 애니메이션은 예측 가능하지만 투사체는 아님.                                                                                |
+| Aim Down Sights            | Right Mouse Button  | Yes        | Blueprint       | 버튼을 누르고 있는 동안 영웅은 느리게 걷고 카메라는 총으로 더 정확한 샷을 할 수 있도록 확대됩니다.                                                    |
+| Sprint                     | Left Shift          | Yes        | Blueprint       | 버튼을 누르고 있는 동안 영웅은 스테미너가 더 빨리 소모되는 달리기를 실행합니다.                                                                                                        |
+| Forward Dash               | Q                   | Yes        | Blueprint       | 영웅은 스테미너 희생하여 앞으로 돌진합니다                                                                                                                              |
+| Passive Armor Stacks       | Passive             | No         | Blueprint       | 4초마다 영웅은 최대 4중첩까지 방어구를 얻습니다. 피해를 입으면 방어구 1중첩이 제거됩니다.                                                    |
+| Meteor                     | R                   | No         | Blueprint       | 플레이어는 위치를 지정해 적에게 피해를 입히고 기절시킬 유성을 떨어트립니다. The targeting is predicted while spawning the meteor is not.                    |
 
-It does not matter if `GameplayAbilities` are created in C++ or Blueprint. A mixture of the two were used here for example of how to do them in each language.
+`GameplayAbilities`가 C++이든 블루프린트든 상관 없습니다. 혼합 사용하는 예시가 사용되었습니다. 
 
 Minions do not come with any predefined `GameplayAbilities`. The Red Minions have more health regen while the Blue Minions have higher starting health.
 
@@ -258,8 +264,8 @@ For `GameplayAbility` naming, I used the suffix `_BP` to denote the `GameplayAbi
 <a name="setup"></a>
 ## 3. Setting Up a Project Using GAS
 Basic steps to set up a project using GAS:
-1. Enable GameplayAbilitySystem plugin in the Editor
-1. Edit `YourProjectName.Build.cs` to add `"GameplayAbilities", "GameplayTags", "GameplayTasks"` to your `PrivateDependencyModuleNames`
+1. 에디터에서 GameplayAbilitySystem plugin 활성화
+1. `YourProjectName.Build.cs`를 편집해 `"GameplayAbilities", "GameplayTags", "GameplayTasks"`를`PrivateDependencyModuleNames`에 추가
 1. Refresh/Regenerate your Visual Studio project files
 1. Starting with 4.24, it is now mandatory to call `UAbilitySystemGlobals::Get().InitGlobalData()` to use [`TargetData`](#concepts-targeting-data). The Sample Project does this in `UAssetManager::StartInitialLoading()`. See [`InitGlobalData()`](#concepts-asg-initglobaldata) for more information.
 
@@ -285,30 +291,35 @@ That's all that you have to do to enable GAS. From here, add an [`ASC`](#concept
 
 <a name="concepts-asc"></a>
 ### 4.1 Ability System Component
-The `AbilitySystemComponent` (`ASC`) is the heart of GAS. It's a `UActorComponent` ([`UAbilitySystemComponent`](https://docs.unrealengine.com/en-US/API/Plugins/GameplayAbilities/UAbilitySystemComponent/index.html)) that handles all interactions with the system. Any `Actor` that wishes to use [`GameplayAbilities`](#concepts-ga), have [`Attributes`](#concepts-a), or receive [`GameplayEffects`](#concepts-ge) must have one `ASC` attached to them. These objects all live inside of and are managed and replicated by (with the exception of `Attributes` which are replicated by their [`AttributeSet`](#concepts-as)) the `ASC`. Developers are expected but not required to subclass this.
+The `AbilitySystemComponent` (`ASC`) 가 가장 중요하다. 시스템과 모든 상호작용을 처리하는 `UActorComponent` ([`UAbilitySystemComponent`](https://docs.unrealengine.com/en-US/API/Plugins/GameplayAbilities/UAbilitySystemComponent/index.html)) 입니다. 어떤 `Actor`든[`GameplayAbilities`](#concepts-ga)을 쓰고, [`Attributes`](#concepts-a)를 가지고, [`GameplayEffects`](#concepts-ge)를 받으려면 한 개의 `ASC`가 attached 되야 합니다. 모든 객체는(`Attributes`는 예외로 [`AttributeSet`](#concepts-as)에서 replicate) `ASC`안에서 관리되고 replicate 됩니다 . Developers are expected but not required to subclass this.
 
-The `Actor` with the `ASC` attached to it is referred to as the `OwnerActor` of the `ASC`. The physical representation `Actor` of the `ASC` is called the `AvatarActor`. The `OwnerActor` and the `AvatarActor` can be the same `Actor` as in the case of a simple AI minion in a MOBA game. They can also be different `Actors` as in the case of a player controlled hero in a MOBA game where the `OwnerActor` is the `PlayerState` and the `AvatarActor` is the hero's `Character` class. Most `Actors` will have the `ASC` on themselves. If your `Actor` will respawn and need persistence of `Attributes` or `GameplayEffects` between spawns (like a hero in a MOBA), then the ideal location for the `ASC` is on the `PlayerState`.
+ `ASC`가 부착된`Actor`는 `ASC`의`OwnerActor`라고 합니다. The physical representation `Actor` of the `ASC` is called the `AvatarActor`. The `OwnerActor` and the `AvatarActor` can be the same `Actor` as in the case of a simple AI minion in a MOBA game. They can also be different `Actors` as in the case of a player controlled hero in a MOBA game where the `OwnerActor` is the `PlayerState` and the `AvatarActor` is the hero's `Character` class. Most `Actors` will have the `ASC` on themselves. If your `Actor` will respawn and need persistence of `Attributes` or `GameplayEffects` between spawns (like a hero in a MOBA), then the ideal location for the `ASC` is on the `PlayerState`.
+(내생각: ASC가 있는 액터는 오너. 두 번째 줄은 모르겠음. 보통은 액터에 ASC가 바로 부착되어 있음. 그런데 외부에서 입력을 받거나 죽고 부활할 때 기존 상태를 가지고 있어야 하는(아이템 같은 거) 애들은 ASC가 PlayerState에 있고 캐릭터는 따로 두는 것 같음
 
 **Note:** If your `ASC` is on your `PlayerState`, then you will need to increase the `NetUpdateFrequency` of your `PlayerState`. It defaults to a very low value on the `PlayerState` and can cause delays or perceived lag before changes to things like `Attributes` and `GameplayTags` happen on the clients. Be sure to enable [`Adaptive Network Update Frequency`](https://docs.unrealengine.com/en-US/Gameplay/Networking/Actors/Properties/index.html#adaptivenetworkupdatefrequency), Fortnite uses it.
+(ASC가 PlayerState에 있다면 업데이트 빈도를 늘려야 한다. 포트나이트에서 하듯 너도적응형 frequency를 써라)
 
 Both, the `OwnerActor` and the `AvatarActor` if different `Actors`, should implement the `IAbilitySystemInterface`. This interface has one function that must be overriden, `UAbilitySystemComponent* GetAbilitySystemComponent() const`, which returns a pointer to its `ASC`. `ASCs` interact with each other internally to the system by looking for this interface function.
+(OwnerActor랑 AvatarActor가 다른 경우 IAbilitySystemInterface를 구현해야 함. 얘는 ASC의 포인터를 리턴해야 한다.  아마 ASC가 PlayerState에 있다고 했으니까 OwnerActor를 쓸 때 ASC를 못 찾아서 그런 게 아닐까)
 
 The `ASC` holds its current active `GameplayEffects` in `FActiveGameplayEffectsContainer ActiveGameplayEffects`.
+(이 기나긴 곳에 지금 실행중인 이펙트가 들어있다)
 
 The `ASC` holds its granted `Gameplay Abilities` in `FGameplayAbilitySpecContainer ActivatableAbilities`. Any time that you plan to iterate over `ActivatableAbilities.Items`, be sure to add `ABILITYLIST_SCOPE_LOCK();` above your loop to lock the list from changing (due to removing an ability). Every `ABILITYLIST_SCOPE_LOCK();` in scope increments `AbilityScopeLockCount` and then decrements when it falls out of scope. Do not try to remove an ability inside the scope of `ABILITYLIST_SCOPE_LOCK();` (the clear ability functions check `AbilityScopeLockCount` internally to prevent removing abilities if the list is locked).
+(FGameplayAbilitySpecContainer ActivatableAbilities에 ASC의 Gameplay Abilities가 들어있다. ActivatableAbilities.Items의 능력을 반복 시킬 수 있지만, ABILITYLIST_SCOPE_LOCK();를 꼭 추가해라. Items 내부가 변하지 않도록(변하면 안 되는 듯). 내부적으로 AbilityScopeLockCount변수를 활용해서 락이 걸린 개수를 확인한다. (중첩 락이 가능))
 
 <a name="concepts-asc-rm"></a>
 ### 4.1.1 Replication Mode
 The `ASC` defines three different replication modes for replicating `GameplayEffects`, `GameplayTags`, and `GameplayCues` - `Full`, `Mixed`, and `Minimal`. `Attributes` are replicated by their `AttributeSet`.
 
-| Replication Mode   | When to Use                             | Description                                                                                                                    |
+| Replication Mode   | 사용대상                            | Description                                                                                                                    |
 | ------------------ | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | `Full`             | Single Player                           | Every `GameplayEffect` is replicated to every client.                                                                          |
-| `Mixed`            | Multiplayer, player controlled `Actors` | `GameplayEffects` are only replicated to the owning client. Only `GameplayTags` and `GameplayCues` are replicated to everyone. |
+| `Mixed`            | Multiplayer, player controlled `Actors` | `GameplayEffects`는 소유자에게만 replicate됨. Only `GameplayTags` and `GameplayCues`만 전부 보임 |
 | `Minimal`          | Multiplayer, AI controlled `Actors`     | `GameplayEffects` are never replicated to anyone. Only `GameplayTags` and `GameplayCues` are replicated to everyone.           |
 
 **Note:** `Mixed` replication mode expects the `OwnerActor's` `Owner` to be the `Controller`. `PlayerState's` `Owner` is the `Controller` by default but `Character's` is not. If using `Mixed` replication mode with the `OwnerActor` not the `PlayerState`, then you need to call `SetOwner()` on the `OwnerActor` with a valid `Controller`.
-
+(Mixed는 OwnerActor의 Owner가 Controller일 것을 기대. PlayerState의 Owner는 보통 Controller지만 Character는 아니기 때문.플레이어 상태가 아닌 OwnerActor에서 혼합  모드를 사용하는 경우 유효한 컨트롤러가 있는 OwnerActor에서만 SetOwner()를 호출해야 합니다.
 Starting with 4.24, `PossessedBy()` now sets the owner of the `Pawn` to the new `Controller`.
 
 **[⬆ Back to Top](#table-of-contents)**
@@ -316,7 +327,14 @@ Starting with 4.24, `PossessedBy()` now sets the owner of the `Pawn` to the new 
 <a name="concepts-asc-setup"></a>
 ### 4.1.2 Setup and Initialization
 `ASCs` are typically constructed in the `OwnerActor's` constructor and explicitly marked replicated. **This must be done in C++**.
+(C++로 ASC를 쓰고, replicate 된다고 밝혀야 함. 
+> PlayerState설명
 
+ - 모든 접속된 클라이언트는 현재 클라이언트의 정보를 포함하고 있는 한개의 PlayerState 객체를 갖는다
+ - PlayerState 객체는 모든 클라이언트에게 Replicated 되므로 어떤 클라이언트에서 다른 클라이언트의 정보를 접할 수가 있다
+ - 현재 클라이언트에서 다른 클라이언트의 PlayerState 객체에 접근하는 쉬운 방법은 GameState::getPlayerArray 를 이용하는 것이다
+ - PlayerName, Score 등 다른 클라이언트에게 제공해야 하는 다양한 정보(커스텀 변수)를 이 객체에 저장하여 다른 클라이언트에게 전달할 수 있다
+ - PlayerPawn이 Destroy 되더라도 PlayerState는 유지된다)
 ```c++
 AGDPlayerState::AGDPlayerState()
 {
