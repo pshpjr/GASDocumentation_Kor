@@ -522,7 +522,9 @@ The `ASC` provides a delegate for when `GameplayTags` are added or removed. It t
 AbilitySystemComponent->RegisterGameplayTagEvent(FGameplayTag::RequestGameplayTag(FName("State.Debuff.Stun")), EGameplayTagEventType::NewOrRemoved).AddUObject(this, &AGDPlayerState::StunTagChanged);
 ```
 
-The callback function has a parameter for the `GameplayTag` and the new `TagCount`.
+The callback function has a parameter for the `GameplayTag` and the new `TagCount`. 
+
+(델리게이트에 집어넣을 콜백들은 인자 2 개 받음)
 ```c++
 virtual void StunTagChanged(const FGameplayTag CallbackTag, int32 NewCount);
 ```
@@ -535,6 +537,8 @@ virtual void StunTagChanged(const FGameplayTag CallbackTag, int32 NewCount);
 <a name="concepts-a-definition"></a>
 #### 4.3.1 Attribute Definition
 `Attributes` are float values defined by the struct [`FGameplayAttributeData`](https://docs.unrealengine.com/en-US/API/Plugins/GameplayAbilities/FGameplayAttributeData/index.html). These can represent anything from the amount of health a character has to the character's level to the number of charges that a potion has. If it is a gameplay-related numerical value belonging to an `Actor`, you should consider using an `Attribute` for it. `Attributes` should generally only be modified by [`GameplayEffects`](#concepts-ge) so that the ASC can [predict](#concepts-p) the changes.
+
+(Attribute는 FGameplayAttributeData 구조체로 정의된 실수값이다. 액터과 관련된 숫자 값이라면 Attribute 사용을 고려. GameplayEffects를 써서 변경해야 ASC가 예측할 수 있음. 
 
 `Attributes` are defined by and live in an [`AttributeSet`](#concepts-as). The `AttributeSet` is responsible for replicating `Attributes` that are marked for replication. See the section on [`AttributeSets`](#concepts-as) for how to define `Attributes`.
 
