@@ -294,18 +294,23 @@ That's all that you have to do to enable GAS. From here, add an [`ASC`](#concept
 The `AbilitySystemComponent` (`ASC`) 가 가장 중요하다. 시스템과 모든 상호작용을 처리하는 `UActorComponent` ([`UAbilitySystemComponent`](https://docs.unrealengine.com/en-US/API/Plugins/GameplayAbilities/UAbilitySystemComponent/index.html)) 입니다. 어떤 `Actor`든[`GameplayAbilities`](#concepts-ga)을 쓰고, [`Attributes`](#concepts-a)를 가지고, [`GameplayEffects`](#concepts-ge)를 받으려면 한 개의 `ASC`가 attached 되야 합니다. 모든 객체는(`Attributes`는 예외로 [`AttributeSet`](#concepts-as)에서 replicate) `ASC`안에서 관리되고 replicate 됩니다 . Developers are expected but not required to subclass this.
 
  `ASC`가 부착된`Actor`는 `ASC`의`OwnerActor`라고 합니다. The physical representation `Actor` of the `ASC` is called the `AvatarActor`. The `OwnerActor` and the `AvatarActor` can be the same `Actor` as in the case of a simple AI minion in a MOBA game. They can also be different `Actors` as in the case of a player controlled hero in a MOBA game where the `OwnerActor` is the `PlayerState` and the `AvatarActor` is the hero's `Character` class. Most `Actors` will have the `ASC` on themselves. If your `Actor` will respawn and need persistence of `Attributes` or `GameplayEffects` between spawns (like a hero in a MOBA), then the ideal location for the `ASC` is on the `PlayerState`.
+
 (내생각: ASC가 있는 액터는 오너. 두 번째 줄은 모르겠음. 보통은 액터에 ASC가 바로 부착되어 있음. 그런데 외부에서 입력을 받거나 죽고 부활할 때 기존 상태를 가지고 있어야 하는(아이템 같은 거) 애들은 ASC가 PlayerState에 있고 캐릭터는 따로 두는 것 같음
 
 **Note:** If your `ASC` is on your `PlayerState`, then you will need to increase the `NetUpdateFrequency` of your `PlayerState`. It defaults to a very low value on the `PlayerState` and can cause delays or perceived lag before changes to things like `Attributes` and `GameplayTags` happen on the clients. Be sure to enable [`Adaptive Network Update Frequency`](https://docs.unrealengine.com/en-US/Gameplay/Networking/Actors/Properties/index.html#adaptivenetworkupdatefrequency), Fortnite uses it.
+
 (ASC가 PlayerState에 있다면 업데이트 빈도를 늘려야 한다. 포트나이트에서 하듯 너도적응형 frequency를 써라)
 
 Both, the `OwnerActor` and the `AvatarActor` if different `Actors`, should implement the `IAbilitySystemInterface`. This interface has one function that must be overriden, `UAbilitySystemComponent* GetAbilitySystemComponent() const`, which returns a pointer to its `ASC`. `ASCs` interact with each other internally to the system by looking for this interface function.
+
 (OwnerActor랑 AvatarActor가 다른 경우 IAbilitySystemInterface를 구현해야 함. 얘는 ASC의 포인터를 리턴해야 한다.  아마 ASC가 PlayerState에 있다고 했으니까 OwnerActor를 쓸 때 ASC를 못 찾아서 그런 게 아닐까)
 
 The `ASC` holds its current active `GameplayEffects` in `FActiveGameplayEffectsContainer ActiveGameplayEffects`.
+
 (이 기나긴 곳에 지금 실행중인 이펙트가 들어있다)
 
 The `ASC` holds its granted `Gameplay Abilities` in `FGameplayAbilitySpecContainer ActivatableAbilities`. Any time that you plan to iterate over `ActivatableAbilities.Items`, be sure to add `ABILITYLIST_SCOPE_LOCK();` above your loop to lock the list from changing (due to removing an ability). Every `ABILITYLIST_SCOPE_LOCK();` in scope increments `AbilityScopeLockCount` and then decrements when it falls out of scope. Do not try to remove an ability inside the scope of `ABILITYLIST_SCOPE_LOCK();` (the clear ability functions check `AbilityScopeLockCount` internally to prevent removing abilities if the list is locked).
+
 (FGameplayAbilitySpecContainer ActivatableAbilities에 ASC의 Gameplay Abilities가 들어있다. ActivatableAbilities.Items의 능력을 반복 시킬 수 있지만, ABILITYLIST_SCOPE_LOCK();를 꼭 추가해라. Items 내부가 변하지 않도록(변하면 안 되는 듯). 내부적으로 AbilityScopeLockCount변수를 활용해서 락이 걸린 개수를 확인한다. (중첩 락이 가능))
 
 <a name="concepts-asc-rm"></a>
@@ -319,6 +324,7 @@ The `ASC` defines three different replication modes for replicating `GameplayEff
 | `Minimal`          | Multiplayer, AI controlled `Actors`     | `GameplayEffects` are never replicated to anyone. Only `GameplayTags` and `GameplayCues` are replicated to everyone.           |
 
 **Note:** `Mixed` replication mode expects the `OwnerActor's` `Owner` to be the `Controller`. `PlayerState's` `Owner` is the `Controller` by default but `Character's` is not. If using `Mixed` replication mode with the `OwnerActor` not the `PlayerState`, then you need to call `SetOwner()` on the `OwnerActor` with a valid `Controller`.
+
 (Mixed는 OwnerActor의 Owner가 Controller일 것을 기대. PlayerState의 Owner는 보통 Controller지만 Character는 아니기 때문.플레이어 상태가 아닌 OwnerActor에서 혼합  모드를 사용하는 경우 유효한 컨트롤러가 있는 OwnerActor에서만 SetOwner()를 호출해야 합니다.
 Starting with 4.24, `PossessedBy()` now sets the owner of the `Pawn` to the new `Controller`.
 
@@ -327,6 +333,7 @@ Starting with 4.24, `PossessedBy()` now sets the owner of the `Pawn` to the new 
 <a name="concepts-asc-setup"></a>
 ### 4.1.2 Setup and Initialization
 `ASCs` are typically constructed in the `OwnerActor's` constructor and explicitly marked replicated. **This must be done in C++**.
+
 (C++로 ASC를 쓰고, replicate 된다고 밝혀야 함. 
 > PlayerState설명
 
@@ -335,6 +342,7 @@ Starting with 4.24, `PossessedBy()` now sets the owner of the `Pawn` to the new 
  - 현재 클라이언트에서 다른 클라이언트의 PlayerState 객체에 접근하는 쉬운 방법은 GameState::getPlayerArray 를 이용하는 것이다
  - PlayerName, Score 등 다른 클라이언트에게 제공해야 하는 다양한 정보(커스텀 변수)를 이 객체에 저장하여 다른 클라이언트에게 전달할 수 있다
  - PlayerPawn이 Destroy 되더라도 PlayerState는 유지된다)
+ 
 ```c++
 AGDPlayerState::AGDPlayerState()
 {
@@ -347,7 +355,12 @@ AGDPlayerState::AGDPlayerState()
 
 The `ASC` needs to be initialized with its `OwnerActor` and `AvatarActor` on both the server and the client. You want to initialize after the `Pawn's` `Controller` has been set (after possession). Single player games only need to worry about the server path.
 
+(ASC는 서버, 클라 양쪽에서 OwnerActor, AvatarActor로 초기화 되어야 한다.)
+
 For player controlled characters where the `ASC` lives on the `Pawn`, I typically initialize on the server in the `Pawn's` `PossessedBy()` function and initialize on the client in the `PlayerController's` `AcknowledgePossession()` function.
+
+(ASC가 폰에 있는(플레이어가 조작하는 캐릭터)는 서버에서 Pawn의 PossessedBy() 함수로 초기화하고 클라에서는 PlayerController의 AcknowledgePossession() 함수를 쓴다. [possession이 뭔지 링크](https://docs.unrealengine.com/4.27/ko/InteractiveExperiences/HowTo/PossessPawns/Blueprints/)
+아래 방법은 글 작성자의 권장사항)
 
 ```c++
 void APACharacterBase::PossessedBy(AController * NewController)
@@ -381,6 +394,7 @@ void APAPlayerControllerBase::AcknowledgePossession(APawn* P)
 
 For player controlled characters where the `ASC` lives on the `PlayerState`, I typically initialize the server in the `Pawn's` `PossessedBy()` function and initialize on the client in the `Pawn's` `OnRep_PlayerState()` function. This ensures that the `PlayerState` exists on the client.
 
+(ASC가 PlayerState에 있을 땐 서버에서 Pawn의 PossessedBy() 함수를, 클라에선 Pawn의 OnRep_PlayerState() 함수를 쓴다. 이렇게 하면 PlayerState가 클라에 존재하게 된다. 
 ```c++
 // Server only
 void AGDHeroCharacter::PossessedBy(AController * NewController)
@@ -423,31 +437,55 @@ void AGDHeroCharacter::OnRep_PlayerState()
 
 If you get the error message `LogAbilitySystem: Warning: Can't activate LocalOnly or LocalPredicted ability %s when not local!` then you did not initialize your `ASC` on the client.
 
+
+
 **[⬆ Back to Top](#table-of-contents)**
 
 <a name="concepts-gt"></a>
 ### 4.2 Gameplay Tags
 [`FGameplayTags`](https://docs.unrealengine.com/en-US/API/Runtime/GameplayTags/FGameplayTag/index.html) are hierarchical names in the form of `Parent.Child.Grandchild...` that are registered with the `GameplayTagManager`. These tags are incredibly useful for classifying and describing the state of an object. For example, if a character is stunned, we could give it a `State.Debuff.Stun` `GameplayTag` for the duration of the stun.
 
+(GameplayTagManager에 태그를 추가할 수 있다. 개층적 구조로 객체의 상태를 묘사하거나 분류하는데 큰 도움이 된다. State.Debuff.Stun이라는 태그는 스턴 상태이며 스턴은 디버프라는 것을 알 수 있다. )
+
 You will find yourself replacing things that you used to handle with booleans or enums with `GameplayTags` and doing boolean logic on whether or not objects have certain `GameplayTags`.
+(어떤 객체가 해당 태그를 가지고 있는지 확인도 가능하다)
 
 When giving tags to an object, we typically add them to its `ASC` if it has one so that GAS can interact with them. `UAbilitySystemComponent` implements the `IGameplayTagAssetInterface` giving functions to access its owned `GameplayTags`.
 
+(객체에 태그를 부여할 때 ASC가 있을 경우 GAS와 상호작용 할 수 있게 ASC에도 부여한다. UAbilitySystemComponent를 implement 한 IGameplayTagAssetInterface는 GameplayTags에 접근하는 함수를 제공한다. 
+
 Multiple `GameplayTags` can be stored in an `FGameplayTagContainer`. It is preferable to use a `GameplayTagContainer` over a `TArray<FGameplayTag>` since the `GameplayTagContainers` add some efficiency magic. While tags are standard `FNames`, they can be efficiently packed together in `FGameplayTagContainers` for replication if `Fast Replication` is enabled in the project settings. `Fast Replication` requires that the server and the clients have the same list of `GameplayTags`. This generally shouldn't be a problem so you should enable this option. `GameplayTagContainers` can also return a `TArray<FGameplayTag>` for iteration.
+
+(여러 GameplayTags는 FGameplayTagContainer에 저장된다. 배열 쓰는 것 보다 이게 더 좋다. FGameplayTagContainer를 쓰고 Fast Replication 옵션을 프로젝트 세팅에서 켜라. 이 옵션은 서버와 클라가 같은 GameplayTags를 가질 것을 요구한다. 반복을 위한 TArray도 반환할 수 있다.)
 
 `GameplayTags` stored in `FGameplayTagCountContainer` have a `TagMap` that stores the number of instances of that `GameplayTag`. A `FGameplayTagCountContainer` may still have the `GameplayTag` in it but its `TagMapCount` is zero. You may encounter this while debugging if an `ASC` still has a `GameplayTag`. Any of the `HasTag()` or `HasMatchingTag()` or similar functions will check the `TagMapCount` and return false if the `GameplayTag` is not present or its `TagMapCount` is zero.
 
+(FGameplayTagCountContainer에 저장된 태그는 태그맵을 통해 몇 개의 인스턴스가 태그를 가지고 있는지 저장한다. 이걸 바탕으로 HasTag()같은 함수들이 작동한다. 디버깅중 ASC에 
+GameplayTag가 있을 경우 FGameplayTagCountContainer에 GameplayTag가 있는데도 TagMapCount가 0으로 나올 수 있다)
+
+
 `GameplayTags` must be defined ahead of time in the `DefaultGameplayTags.ini`. The UE5 Editor provides an interface in the project settings to let developers manage `GameplayTags` without needing to manually edit the `DefaultGameplayTags.ini`. The `GameplayTag` editor can create, rename, search for references, and delete `GameplayTags`.
+
+(프로젝트 설정에서 GameplayTag가 뭐가 있는지 편집기를 제공한다. )
 
 ![GameplayTag Editor in Project Settings](https://github.com/tranek/GASDocumentation/raw/master/Images/gameplaytageditor.png)
 
 Searching for `GameplayTag` references will bring up the familiar `Reference Viewer` graph in the Editor showing all the assets that reference the `GameplayTag`. This will not however show any C++ classes that reference the `GameplayTag`.
 
+(GameplayTag를 쓰는 C++ 클래스는 레퍼런스 뷰어에 안 나온다. )
+
 Renaming `GameplayTags` creates a redirect so that assets still referencing the original `GameplayTag` can redirect to the new `GameplayTag`. I prefer if possible to instead create a new `GameplayTag`, update all the references manually to the new `GameplayTag`, and then delete the old `GameplayTag` to avoid creating a redirect.
+(GameplayTags 이름을 바꾸면 알아서 기존 이름에서 새 이름으로 다 바꿔준다)
 
 In addition to `Fast Replication`, the `GameplayTag` editor has an option to fill in commonly replicated `GameplayTags` to optimize them further.
 
+(태그 편집기에는 추가 최적화 옵션이 있다. )
+
 `GameplayTags` are replicated if they're added from a `GameplayEffect`. The `ASC` allows you to add `LooseGameplayTags` that are not replicated and must be managed manually. The Sample Project uses a `LooseGameplayTag` for `State.Dead` so that the owning clients can immediately respond to when their health drops to zero. Respawning manually sets the `TagMapCount` back to zero. Only manually adjust the `TagMapCount` when working with `LooseGameplayTags`. It is preferable to use the `UAbilitySystemComponent::AddLooseGameplayTag()` and `UAbilitySystemComponent::RemoveLooseGameplayTag()` functions than manually adjusting the `TagMapCount`.
+
+(GameplayTags는 GameplayEffect에 추가되었을 경우 replicated된다. LooseGameplayTags는 replicate되지 않는다. 예제에서는 State.Dead를 Loose로 설정해 체력이 0이면 클라에서 바로 죽게 했다(서버 안 거치고 바로). 리스폰되면 TagMapCount는 0이다. LooseGameplayTags는 자동으로 초기화 해 주지 않으니 조심. TagMapCount를 변경하는 것 보다 Tag를 제거 후 추가하는게 더 편하다)
+
+태그의 레퍼런스 얻기 
 
 Getting a reference to a `GameplayTag` in C++:
 ```c++
@@ -456,11 +494,19 @@ FGameplayTag::RequestGameplayTag(FName("Your.GameplayTag.Name"))
 
 For advanced `GameplayTag` manipulation like getting the parent or children `GameplayTags`, look at the functions offered by the `GameplayTagManager`. To access the `GameplayTagManager`, include `GameplayTagManager.h` and call it with `UGameplayTagManager::Get().FunctionName`. The `GameplayTagManager` actually stores the `GameplayTags` as relational nodes (parent, child, etc) for faster processing than constant string manipulation and comparisons.
 
+(어디서든 GameplayTagManager.h를 추가하고 태그 관련 함수를 사용할 수 있다)
+
 `GameplayTags` and `GameplayTagContainers` can have the optional `UPROPERTY` specifier `Meta = (Categories = "GameplayCue")` that filters the tags in the Blueprint to show only `GameplayTags` that have the parent tag of `GameplayCue`. This is useful when you know the `GameplayTag` or `GameplayTagContainer` variable should only be used for `GameplayCues`.
+
+(GameplayTags와 GameplayTagContainers는 블루프린트에 있는 특정 GameplayTags(GameplayCue를 부모 태그로 가지는)만 보여주는 UPROPERTY `Meta = (Categories = "GameplayCue")`를 가질 수 있다.)
 
 Alternatively, there's a separate structure called `FGameplayCueTag` that encapsulates a `FGameplayTag` and also automatically filters `GameplayTags` in Blueprint to only show those tags with the parent tag of `GameplayCue`.
 
+(GameplayCue의 부모 태그들만 표시하는 FGameplayCueTag도 있다. F 접두사는 언리얼과 관련 없는 C++ 관련 구조체, 클래스를 의미한다. )
+
 If you want to filter a `GameplayTag` parameter in a function, use the `UFUNCTION` specifier `Meta = (GameplayTagFilter = "GameplayCue")`. `GameplayTagContainer` parameters in functions can not be filtered. If you would like to edit your engine to allow this, look at how `SGameplayTagGraphPin::ParseDefaultValueData()` from `Engine\Plugins\Editor\GameplayTagsEditor\Source\GameplayTagsEditor\Private\SGameplayTagGraphPin.cpp` calls `FilterString = UGameplayTagsManager::Get().GetCategoriesMetaFromField(PinStructType);` and passes `FilterString` to `SGameplayTagWidget` in `SGameplayTagGraphPin::GetListContent()`. The `GameplayTagContainer` version of these functions in `Engine\Plugins\Editor\GameplayTagsEditor\Source\GameplayTagsEditor\Private\SGameplayTagContainerGraphPin.cpp` do not check for the meta field properties and pass along the filter.
+ 
+(Meta = (GameplayTagFilter = "GameplayCue")인 UFUNCTION을 써서 GameplayTag를 필터링 해라)
 
 The Sample Project extensively uses `GameplayTags`.
 
@@ -469,6 +515,8 @@ The Sample Project extensively uses `GameplayTags`.
 <a name="concepts-gt-change"></a>
 ### 4.2.1 Responding to Changes in Gameplay Tags
 The `ASC` provides a delegate for when `GameplayTags` are added or removed. It takes in a `EGameplayTagEventType` that can specify only to fire when the `GameplayTag` is added/removed or for any change in the `GameplayTag's` `TagMapCount`.
+
+(ASC는 태그가 추가, 삭제될 때 호출되는 델리게이트를 제공한다)
 
 ```c++
 AbilitySystemComponent->RegisterGameplayTagEvent(FGameplayTag::RequestGameplayTag(FName("State.Debuff.Stun")), EGameplayTagEventType::NewOrRemoved).AddUObject(this, &AGDPlayerState::StunTagChanged);
