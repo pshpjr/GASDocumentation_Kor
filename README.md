@@ -542,6 +542,8 @@ virtual void StunTagChanged(const FGameplayTag CallbackTag, int32 NewCount);
 
 `Attributes` are defined by and live in an [`AttributeSet`](#concepts-as). The `AttributeSet` is responsible for replicating `Attributes` that are marked for replication. See the section on [`AttributeSets`](#concepts-as) for how to define `Attributes`.
 
+(Attributes는 AttributeSet에서 정의함. AttributeSet은 replicate도 한다. 자세한건 [`AttributeSets`](#concepts-as) )
+
 **Tip:** If you don't want an `Attribute` to show up in the Editor's list of `Attributes`, you can use the `Meta = (HideInDetailsView)` `property specifier`.
 
 **[⬆ Back to Top](#table-of-contents)**
@@ -550,7 +552,11 @@ virtual void StunTagChanged(const FGameplayTag CallbackTag, int32 NewCount);
 #### 4.3.2 BaseValue vs CurrentValue
 An `Attribute` is composed of two values - a `BaseValue` and a `CurrentValue`. The `BaseValue` is the permanent value of the `Attribute` whereas the `CurrentValue` is the `BaseValue` plus temporary modifications from `GameplayEffects`. For example, your `Character` may have a movespeed `Attribute` with a `BaseValue` of 600 units/second. Since there are no `GameplayEffects` modifying the movespeed yet, the `CurrentValue` is also 600 u/s. If she gets a temporary 50 u/s movespeed buff, the `BaseValue` stays the same at 600 u/s while the `CurrentValue` is now 600 + 50 for a total of 650 u/s. When the movespeed buff expires, the `CurrentValue` reverts back to the `BaseValue` of 600 u/s.
 
+(Attribute는 BaseValue와 CurrentValue이 있다. BaseValue는 어떤 Attribute 기본 값이고, CurrentValue는 GameplayEffects로인해 BaseValue가 변경된 값이다. 처음에는 BaseValue == CurrentValue이다가 GameplayEffects로 인해 CurrentValue가 임시적으로 변경된다. )
+
 Often beginners to GAS will confuse `BaseValue` with a maximum value for an `Attribute` and try to treat it as such. This is an incorrect approach. Maximum values for `Attributes` that can change or are referenced in abilities or UI should be treated as separate `Attributes`. For hardcoded maximum and minimum values, there is a way to define a `DataTable` with `FAttributeMetaData` that can set maximum and minimum values, but Epic's comment above the struct calls it a "work in progress". See `AttributeSet.h` for more information. To prevent confusion, I recommend that maximum values that can be referenced in abilities or UI be made as separate `Attributes` and hardcoded maximum and minimum values that are only used for clamping `Attributes` be defined as hardcoded floats in the `AttributeSet`. Clamping of `Attributes` is discussed in [PreAttributeChange()](#concepts-as-preattributechange) for changes to the `CurrentValue` and [PostGameplayEffectExecute()](#concepts-as-postgameplayeffectexecute) for changes to the `BaseValue` from `GameplayEffects`.
+
+(BaseValue를 어떤 Attribute의 최댓값으로 잘못 사용하기도 한다. 최댓값은 또 다른 Attributes 값으로 지정해야 한다. 혼동을 막기 위해 UI, ability에서 참조하는 최대값은 Attribute로 만들고 `클램핑` 하는데만 사용하는 하드코딩된 최대 최소 값은 AttributeSet에 적어라. 클램핑 관련 설명 [PreAttributeChange()](#concepts-as-preattributechange).  `CurrentValue` 바꾸는 얘기는 여기[PostGameplayEffectExecute()](#concepts-as-postgameplayeffectexecute), `BaseValue` 바꾸는 얘기는 PostGameplayEffectExecute()](#concepts-as-postgameplayeffectexecute)) 여기. )
 
 Permanent changes to the `BaseValue` come from `Instant` `GameplayEffects` whereas `Duration` and `Infinite` `GameplayEffects` change the `CurrentValue`. Periodic `GameplayEffects` are treated like instant `GameplayEffects` and change the `BaseValue`.
 
