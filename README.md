@@ -566,16 +566,22 @@ Permanent changes to the `BaseValue` come from `Instant` `GameplayEffects` where
 #### 4.3.3 Meta Attributes
 Some `Attributes` are treated as placeholders for temporary values that are intended to interact with `Attributes`. These are called `Meta Attributes`. For example, we commonly define damage as a `Meta Attribute`. Instead of a `GameplayEffect` directly changing our health `Attribute`, we use a `Meta Attribute` called damage as a placeholder. This way the damage value can be modified with buffs and debuffs in an [`GameplayEffectExecutionCalculation`](#concepts-ge-ec) and can be further manipulated in the `AttributeSet`, for example subtracting the damage from a current shield `Attribute`, before finally subtracting the remainder from the health `Attribute`. The damage `Meta Attribute` has no persistence between `GameplayEffects` and is overriden by every one. `Meta Attributes` are not typically replicated.
 
+(다른 Attributes를 위한 임시 Attributes도 존재하는데, `Meta Attributes`라 한다. 데미지와 관련된 예시가 있다. 피해를 받을 때는 GameplayEffect를 이용해 체력을 직접 깎기 보다는 데미지라는 변수를 이용하는 것이 좋다. [`GameplayEffectExecutionCalculation`](#concepts-ge-ec) 내부에 있는 버프, 디버프나 AttributeSet 내부에 있는 Attribute에 의해 최종적으로 체력이 깎이는 양은 다를 수 있다. 100의 피해를 받을 때 10%의 피해를 줄이는 장비가 있다면 체력은 90만 줄어들 것이다. `Meta Attributes`는 `GameplayEffects`와 지속적인 관계가 없기에 대부분 replicate 되지 않는다. )
+
 `Meta Attributes` provide a good logical separation for things like damage and healing between "How much damage did we do?" and "What do we do with this damage?". This logical separation means our `Gameplay Effects` and `Execution Calculations` don't need to know how the Target handles the damage. Continuing our damage example, the `Gameplay Effect` determines how much damage and then the `AttributeSet` decides what to do with that damage. Not all characters may have the same `Attributes`, especially if you use subclassed `AttributeSets`. The base `AttributeSet` class may only have a health `Attribute`, but a subclassed `AttributeSet` may add a shield `Attribute`. The subclassed `AttributeSet` with the shield `Attribute` would distribute the damage received differently than the base `AttributeSet` class.
+
+(`Meta Attributes`는 "얼마의 피해를 받았는가?"와 "피해를 어떻게 적용해야 하는가?" 사이를 논리적으로 분리시킨다. 이 말은 `Gameplay Effects`와 `Execution Calculations`가 대상이 피해를 어떻게 처리하든 알 필요 없다는 것이다. 앞의 예시를 계속 얘기하자면, `Gameplay Effect`는 100의 피해를 줘야 한다고 알리고 `AttributeSet`은 알아서 10% 차감한 90의 체력을 깎는다. )
 
 While `Meta Attributes` are a good design pattern, they are not mandatory. If you only ever have one `Execution Calculation` used for all instances of damage and one `Attribute Set` class shared by all characters, then you may be fine doing the damage distribution to health, shields, etc. inside of the `Execution Calculation` and directly modifying those `Attributes`. You'll only be sacrificing flexibility, but that may be okay for you.
 
+(이 방법은 좋지만 의무는 아니다. 모든 캐릭터들이 동일한 `Attribute Set`을 가지고, 같은 피해량 공식을 쓴다면 굳이 안 써도 된다. )
 **[⬆ Back to Top](#table-of-contents)**
 
 <a name="concepts-a-changes"></a>
 #### 4.3.4 Responding to Attribute Changes
 To listen for when an `Attribute` changes to update the UI or other gameplay, use `UAbilitySystemComponent::GetGameplayAttributeValueChangeDelegate(FGameplayAttribute Attribute)`. This function returns a delegate that you can bind to that will be automatically called whenever an `Attribute` changes. The delegate provides a `FOnAttributeChangeData` parameter with the `NewValue`, `OldValue`, and `FGameplayEffectModCallbackData`. **Note:** The `FGameplayEffectModCallbackData` will only be set on the server.
 
+(Attribute가 변경될 때 알고 싶다면 `UAbilitySystemComponent::GetGameplayAttributeValueChangeDelegate(FGameplayAttribute Attribute)`를 써라. 얘가 리턴하는 델리게이트는 값이 변경될 때 실행된다. 콜백은 FOnAttributeChangeData을 인자로 받는데 이 안에는 `NewValue`, `OldValue`, and `FGameplayEffectModCallbackData`가 있다. )
 ```c++
 AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(AttributeSetBase->GetHealthAttribute()).AddUObject(this, &AGDPlayerState::HealthChanged);
 ```
@@ -586,7 +592,11 @@ virtual void HealthChanged(const FOnAttributeChangeData& Data);
 
 The Sample Project binds to the `Attribute` value changed delegates on the `GDPlayerState` to update the HUD and to respond to player death when health reaches zero.
 
+(샘플 프로젝트는 GDPlayerState의 `Attribute` 변경을 델리게이트 해 HUD에 표시하고, 체력이 0이 되면 죽인다.)
+
 A custom Blueprint node that wraps this into an `ASyncTask` is included in the Sample Project. It is used in the `UI_HUD` UMG Widget to update the health, mana, and stamina values. This `AsyncTask` will live forever until manually called `EndTask()`, which we do in the UMG Widget's `Destruct` event. See `AsyncTaskAttributeChanged.h/cpp`.
+
+(이를 `Attribute`로 래핑한 커스텀 블루프린트가 샘플 프로젝트에 있다. UI_HUD UMG가 체력, 마나, 스테미너를 업데이트 한다. 위젯이 소멸되어 EndTask()가 호출되기 전까지 계속 루프를 돈다. `AsyncTaskAttributeChanged.h/cpp` 참고)
 
 ![Listen for Attribute Change BP Node](https://github.com/tranek/GASDocumentation/raw/master/Images/attributechange.png)
 
