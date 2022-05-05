@@ -608,13 +608,19 @@ To make an `Attribute` that has some or all of its value derived from one or mor
 
 The final formula for all the `Modifiers` on a `Derived Attribute` is the same formula for `Modifier Aggregators`. If you need calculations to happen in a certain order, do it all inside of an `MMC`.
 
+(하나 이상의 다른 `Attributes` 에서 파생된 값의 일부 또는 전부를 갖는 `Attributes`를 만들기 위해, 한 개 이상의 `Attribute Based` 또는 [`MMC`](#concepts-ge-mmc) [`Modifiers`](#concepts-ge-mods)와 함께 `Infinite` `GameplayEffect`를 써라)
+
 ```
 ((CurrentValue + Additive) * Multiplicitive) / Division
 ```
 
 **Note:** If playing with multiple clients in PIE, you need to disable `Run Under One Process` in the Editor Preferences otherwise the `Derived Attributes` will not update when their independent `Attributes` update on clients other than the first.
 
+(에디터에서 플레이 할 경우 `Run Under One Process`(한 개 프로세스에서 실행) 옵션을 꺼라. `Derived Attributes`가 갱신 안 된다. 
+
 In this example, we have an `Infinite` `GameplayEffect` that derives the value of `TestAttrA` from the `Attributes`, `TestAttrB` and `TestAttrC`, in the formula `TestAttrA = (TestAttrA + TestAttrB) * ( 2 * TestAttrC)`. `TestAttrA` recalculates its value automatically whenever any of the `Attributes` update their values.
+
+(`Derived Attributes`의 예시가 이런 거다. 다른 값들이 바뀌면 자동으로 변해야 하는 값들)
 
 ![Derived Attribute Example](https://github.com/tranek/GASDocumentation/raw/master/Images/derivedattribute.png)
 
@@ -627,25 +633,41 @@ In this example, we have an `Infinite` `GameplayEffect` that derives the value o
 #### 4.4.1 Attribute Set Definition
 The `AttributeSet` defines, holds, and manages changes to `Attributes`. Developers should subclass from [`UAttributeSet`](https://docs.unrealengine.com/en-US/API/Plugins/GameplayAbilities/UAttributeSet/index.html). Creating an `AttributeSet` in an `OwnerActor's` constructor automatically registers it with its `ASC`. **This must be done in C++**.
 
+(`AttributeSet`은 `Attributes`를 정의, 관리한다. [`UAttributeSet`](https://docs.unrealengine.com/en-US/API/Plugins/GameplayAbilities/UAttributeSet/index.html)의 서브 클래스여야 한다. 주인 액터의 생성자는 ASC에 `AttributeSet`을 자동으로 등록한다. **꼭  C++에서 이 과정 진행해야 함**
+
 **[⬆ Back to Top](#table-of-contents)**
 
 <a name="concepts-as-design"></a>
 #### 4.4.2 Attribute Set Design
 An `ASC` may have one or many `AttributeSets`. AttributeSets have negligible memory overhead so how many `AttributeSets` to use is an organizational decision left up to the developer.
 
+('ASC'는 하나 이상의 `AttributeSets`을 가질 수 있습니다. `AttributeSets`의 메모리 오버헤드는 무시할 수 있으므로 `AttributeSets` 을 몇 개나 쓸지는 조직에서 결정해라.)
+
 It is acceptable to have one large monolithic `AttributeSet` shared by every `Actor` in your game and only use attributes if needed while ignoring unused attributes.
+
+(모든 액터들이 쓰는 커다란 단일 `AttributeSet` 사용도 가능하며, 사용되지 않는 속성은 무시하고 필요한 경우에만 사용한다.)
 
 Alternatively, you may choose to have more than one `AttributeSet` representing groupings of `Attributes` that you selectively add to your `Actors` as needed. For example, you could have an `AttributeSet` for health related `Attributes`, an `AttributeSet` for mana related `Attributes`, and so on. In a MOBA game, heroes might need mana but minions might not. Therefore the heroes would get the mana `AttributeSet` and minions would not.
 
+(필요하다면 여러 `AttributeSet` 사용도 가능하다. MOBA 게임에서 영웅은 마나와 체력이 필요하다. 하지만 미니언은 체력만 있으면 된다. 영웅에는 마나가 있는 `AttributeSet`을 적용하고 미니언은 없는 세트를 추가한다. )
+
 Additionally, `AttributeSets` can be subclassed as another means of selectively choosing which `Attributes` an `Actor` has. `Attributes` are internally referred to as `AttributeSetClassName.AttributeName`. When you subclass an `AttributeSet`, all of the `Attributes` from the parent class will still have the parent class's name as the prefix.
 
+(또한 `AttributeSets`은 어떤 `Attributes`가 `Actor`에 있는지 선택하는 수단으로 불 수도 있다. `적클래스.폭탄병`의 경우 폭탄병은 '적' 클래스의 모든 속성이 있을 것이다. )
+
 While you can have more than one `AttributeSet`, you should not have more than one `AttributeSet` of the same class on an `ASC`. If you have more than one `AttributeSet` from the same class, it won't know which `AttributeSet` to use and will just pick one.
+
+(`AttributeSet`은 두 개 이상 가질 수 있지만 같은 `ASC`인 `AttributeSet`은 한 개만 가질 수 있다. ) 
 
 <a name="concepts-as-design-subcomponents"></a>
 ##### 4.4.2.1 Subcomponents with Individual Attributes
 In the scenario where you have multiple damageable components on a `Pawn` like individually damageable armor pieces, I recommend that if you know the maximum number of damageable components that a `Pawn` could have to make that many health `Attributes` on one `AttributeSet` - DamageableCompHealth0, DamageableCompHealth1, etc. to represent logical 'slots' for those damageable components. In your damageable component class instance, assign the slot number `Attribute` that can be read by `GameplayAbilities` or [`Executions`](#concepts-ge-ec) to know which `Attribute` to apply damage to. `Pawns` that have less than the maximum number or zero of damageable components are fine. Just because a `AttributeSet` has an `Attribute`, doesn't mean that you have to use it. Unused `Attributes` take up trivial amount of memory.
 
+(신발, 갑옷 등 서로 다른 부위의 내구도가 있는 장비를 장착하고 있고, 장착 가능한 최대 부위 개수를 안다면, 각각을 `AttributeSet`의 `Attributes`으로 만들어 논리적으로 구별하라. 장비 객체에 `Attribute`를 각각 부여해  `GameplayAbilities` or [`Executions`](#concepts-ge-ec)에서 어떤 `Attribute`에 피해를 줘야 하는지 알 수 있다. 메모리에 영향이 별로 없으므로 `Attribute`를 만들어두고 안 써도 된다. 
+
 If your subcomponents need many `Attributes` each, there's potentially an unbounded number of subcomponents, the subcomponents can detach and be used by other players (e.g. weapons), or for any other reason this approach doesn't work for you, I'd recommend switching away from `Attributes` and instead store plain old floats on the components. See [Item Attributes](#concepts-as-design-itemattributes).
+
+(하위 요소가 많은 `Attributes`를 필요로 하는 경우, 하위 요소의 수가 무한한 경우, 무기처럼 하위 요소를 장착 해제하고 다른 사람이 쓸 수 있는 경우(주워서) 등등은 쓸모가 경우,`Attributes` 대신 값을 저장하는 게 낫다. See [Item Attributes](#concepts-as-design-itemattributes).)
 
 <a name="concepts-as-design-addremoveruntime"></a>
 ##### 4.4.2.2 Adding and Removing AttributeSets at Runtime
