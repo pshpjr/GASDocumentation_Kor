@@ -667,11 +667,13 @@ In the scenario where you have multiple damageable components on a `Pawn` like i
 
 If your subcomponents need many `Attributes` each, there's potentially an unbounded number of subcomponents, the subcomponents can detach and be used by other players (e.g. weapons), or for any other reason this approach doesn't work for you, I'd recommend switching away from `Attributes` and instead store plain old floats on the components. See [Item Attributes](#concepts-as-design-itemattributes).
 
-(하위 요소가 많은 `Attributes`를 필요로 하는 경우, 하위 요소의 수가 무한한 경우, 무기처럼 하위 요소를 장착 해제하고 다른 사람이 쓸 수 있는 경우(주워서) 등등은 쓸모가 경우,`Attributes` 대신 값을 저장하는 게 낫다. See [Item Attributes](#concepts-as-design-itemattributes).)
+(하위 요소가 많은 `Attributes`를 필요로 하는 경우, 하위 요소의 수가 무한한 경우, 무기처럼 하위 요소를 장착 해제하고 다른 사람이 쓸 수 있는 경우(주워서) 등등은 쓸모가 경우,`Attributes` 대신 flotat 값을 저장하는 게 낫다. See [Item Attributes](#concepts-as-design-itemattributes).)
 
 <a name="concepts-as-design-addremoveruntime"></a>
 ##### 4.4.2.2 Adding and Removing AttributeSets at Runtime
 `AttributeSets` can be added and removed from an `ASC` at runtime; however, removing `AttributeSets` can be dangerous. For example, if an `AttributeSet` is removed on a client before the server and an `Attribute` value change is replicated to client, the `Attribute` won't find its `AttributeSet` and crash the game.
+
+(`AttributeSets`을 런타임에서 `ASC`에 추가 제거 할 수 있지만, `AttributeSets`를 제거하는 것은 위험하다. `AttributeSet`이 서버보다 먼저 클라에서 제거되고, `Attribute`값이 변경되어 클라이언트로 replicate 되면 게임이 크래시 난다. 
 
 On weapon add to inventory:
 ```c++
@@ -688,15 +690,25 @@ AbilitySystemComponent->ForceReplication();
 ##### 4.4.2.3 Item Attributes (Weapon Ammo)
 There's a few ways to implement equippable items with `Attributes` (weapon ammo, armor durability, etc). All of these approaches store values directly on the item. This is necessary for items that can be equipped by more than one player over its lifetime.
 
+(`Attributes` (weapon ammo, armor durability, etc) 를 이용한 구현 방법이 몇가지 있다. 이런 방법을은 아이템에 값을 바로 저장한다. 아이템을 다수의 인원이 장착할 수 있을 때 사용된다. )
+
 > 1. Use plain floats on the item (**Recommended**)
 > 1. Separate `AttributeSet` on the item
 > 1. Separate `ASC` on the item
+
+
+(아이템에 하드코딩하기, `AttributeSet`을 아이템에서 분리하기 `ASC`를 분리하기
+
 
 <a name="concepts-as-design-itemattributes-plainfloats"></a>
 ###### 4.4.2.3.1 Plain Floats on the Item
 Instead of `Attributes`, store plain float values on the item class instance. Fortnite and [GASShooter](https://github.com/tranek/GASShooter) handle gun ammo this way. For a gun, store the max clip size, current ammo in clip, reserve ammo, etc directly as replicated floats (`COND_OwnerOnly`) on the gun instance. If weapons share reserve ammo, you would move the reserve ammo onto the character as an `Attribute` in a shared ammo `AttributeSet` (reload abilities can use a `Cost GE` to pull from reserve ammo into the gun's float clip ammo). Since you're not using `Attributes` for current clip ammo, you will need to override some functions in `UGameplayAbility` to check and apply cost against the floats on the gun. Making the gun the `SourceObject` in the [`GameplayAbilitySpec`](https://github.com/tranek/GASDocumentation#concepts-ga-spec) when granting the ability means you'll have access to the gun that granted the ability inside the ability.
 
+(`Attributes`를 쓰지 말고 실수를 아이템에 저장한다. Fortnite와 [GASShooter](https://github.com/tranek/GASShooter)는 총기 탄약 수를 이렇게 구현한다. 뒤는 모르겠음)
+
 To prevent the gun from replicating back the ammo amount and clobbering the local ammo amount during automatic fire, disable replication while the player has a `IsFiring` `GameplayTag` in `PreReplication()`. You're essentially doing your own local prediction here.
+
+(총쏠 때는 `PreReplication()` 안의 `IsFiring` `GameplayTag` 를 꺼라. )
 
 ```c++
 void AGSWeapon::PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker)
@@ -714,6 +726,8 @@ Benefits:
 Limitations:
 1. Can not use existing `GameplayEffect` workflow (`Cost GEs` for ammo use, etc)
 1. Requires work to override key functions on `UGameplayAbility` to check and apply ammo costs against the gun's floats
+
+( `AttributeSets` 사용 제한을 회피하는 대신 귀찮아짐)
 
 <a name="concepts-as-design-itemattributes-attributeset"></a>
 ###### 4.4.2.3.2 `AttributeSet` on the Item
