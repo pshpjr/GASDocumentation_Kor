@@ -2807,6 +2807,8 @@ GASShooter는 'EndAbility()'를 직접 호출하지 않는 반자동 및 완전 
 
 GASShooter exposes a Blueprint node to allow batching abilities which the aforementioned local-only ability uses to trigger the batched ability.
 
+GASShooter는 앞에서 언급한 로컬 전용 능력이 일괄 처리 능력을 트리거하는 데 사용하는 일괄 처리 능력을 허용하기 위해 블루프린트 노드를 노출합니다.
+
 ![Activate Batched Ability](https://github.com/tranek/GASDocumentation/raw/master/Images/batchabilityactivate.png)
 
 **[⬆ Back to Top](#table-of-contents)**
@@ -2822,6 +2824,15 @@ A `GameplayAbility`'s `NetSecurityPolicy` determines where should an ability exe
 | `ServerOnlyTermination` | A client requesting cancellation or ending of this ability will be ignored by the server. Clients can still request execution of the ability.      |
 | `ServerOnly`            | Server controls both execution and termination of this ability. A client making any requests will be ignored.                                      |
 
+
+| `NetSecurityPolicy` | 설명 |
+| ----------------------- | -------------------------------------------------- -------------------------------------------------- ---------------------------------------------- |
+| `클라이언트 또는 서버` | 보안 요구 사항이 없습니다. 클라이언트 또는 서버는 이 능력의 실행 및 종료를 자유롭게 트리거할 수 있습니다. |
+| `서버 전용 실행` | 이 기능의 실행을 요청하는 클라이언트는 서버에서 무시됩니다. 클라이언트는 여전히 서버에 이 기능을 취소하거나 종료하도록 요청할 수 있습니다. |
+| `서버만 종료` | 이 기능의 취소 또는 종료를 요청하는 클라이언트는 서버에서 무시됩니다. 클라이언트는 여전히 기능 실행을 요청할 수 있습니다. |
+| `서버 전용` | 서버는 이 기능의 실행과 종료를 모두 제어합니다. 요청하는 클라이언트는 무시됩니다. |
+
+
 **[⬆ Back to Top](#table-of-contents)**
 
 <a name="concepts-at"></a>
@@ -2831,6 +2842,8 @@ A `GameplayAbility`'s `NetSecurityPolicy` determines where should an ability exe
 ### 4.7.1 Ability Task Definition
 `GameplayAbilities` only execute in one frame. This does not allow for much flexibility on its own. To do actions that happen over time or require responding to delegates fired at some point later in time we use latent actions called `AbilityTasks`.
 
+'GameplayAbilities'는 한 프레임에서만 실행됩니다. 이것은 자체적으로 많은 유연성을 허용하지 않습니다. 시간이 지남에 따라 발생하거나 나중에 특정 시점에서 실행된 대리자에 응답해야 하는 작업을 수행하려면 'AbilityTasks'라는 잠재적인 작업을 사용합니다.
+
 GAS comes with many `AbilityTasks` out of the box:
 * Tasks for moving Characters with `RootMotionSource`
 * A task for playing animation montages
@@ -2839,7 +2852,17 @@ GAS comes with many `AbilityTasks` out of the box:
 * Tasks for responding to player input
 * and more
 
+GAS는 기본적으로 많은 'AbilityTasks'와 함께 제공됩니다.
+* `RootMotionSource`로 캐릭터 이동 작업
+* 애니메이션 몽타주 재생 작업
+* '속성' 변경에 대응하기 위한 작업
+* 'GameplayEffect' 변경에 대응하기 위한 태스크
+* 플레이어 입력에 응답하기 위한 작업
+* 그리고 더
+
 The `UAbilityTask` constructor enforces a hardcoded game-wide maximum of 1000 concurrent `AbilityTasks` running at the same time. Keep this in mind when designing `GameplayAbilities` for games that can have hundreds of characters in the world at the same time like RTS games.
+
+'UAbilityTask' 생성자는 하드코딩된 게임 전체에서 동시에 실행되는 최대 1000개의 동시 'AbilityTasks'를 적용합니다. RTS 게임처럼 세계에 수백 명의 캐릭터를 동시에 가질 수 있는 게임을 위한 'GameplayAbilities'를 설계할 때 이 점을 염두에 두십시오.
 
 **[⬆ Back to Top](#table-of-contents)**
 
@@ -2849,6 +2872,11 @@ Often you will be creating your own custom `AbilityTasks` (in C++). The Sample P
 1. `PlayMontageAndWaitForEvent` is a combination of the default `PlayMontageAndWait` and `WaitGameplayEvent` `AbilityTasks`. This allows animation montages to send gameplay events from `AnimNotifies` back to the `GameplayAbility` that started them. Use this to trigger actions at specific times during animation montages.
 1. `WaitReceiveDamage` listens for the `OwnerActor` to receive damage. The passive armor stacks `GameplayAbility` removes a stack of armor when the hero receives an instance of damage.
 
+종종 여러분은 자신만의 커스텀 `AbilityTasks`(C++에서)를 만들 것입니다. 샘플 프로젝트에는 두 가지 사용자 정의 'AbilityTasks'가 제공됩니다.
+1. `PlayMontageAndWaitForEvent`는 기본 `PlayMontageAndWait`와 `WaitGameplayEvent` `AbilityTasks`의 조합입니다. 이를 통해 애니메이션 몽타주는 'AnimNotify'에서 게임플레이 이벤트를 시작한 'GameplayAbility'로 다시 보낼 수 있습니다. 애니메이션 몽타주 중 특정 시간에 동작을 트리거하려면 이것을 사용하십시오.
+1. `WaitReceiveDamage`는 `OwnerActor`가 피해를 입는 것을 수신 대기합니다. 패시브 아머 스택 'GameplayAbility'는 영웅이 피해를 입었을 때 아머 스택을 제거합니다.
+
+
 `AbilityTasks` are composed of:
 * A static function that creates new instances of the `AbilityTask`
 * Delegates that are broadcasted on when the `AbilityTask` completes its purpose
@@ -2857,11 +2885,26 @@ Often you will be creating your own custom `AbilityTasks` (in C++). The Sample P
 * Callback functions for any external delegates that it bound to
 * Member variables and any internal helper functions
 
+'AbilityTasks'는 다음으로 구성됩니다.
+* 'AbilityTask'의 새 인스턴스를 생성하는 정적 함수
+* 'AbilityTask'가 목적을 완료했을 때 브로드캐스트되는 델리게이트
+* 주요 작업을 시작하고 외부 대리자에 바인딩하는 등의 `Activate()` 함수
+* 바인딩된 외부 대리자를 포함하여 정리를 위한 `OnDestroy()` 함수
+* 바인딩된 외부 대리자에 대한 콜백 함수
+* 멤버 변수 및 내부 도우미 함수
+
+
 **Note:** `AbilityTasks` can only declare one type of output delegate. All of your output delegates must be of this type, regardless if they use the parameters or not. Pass default values for unused delegate parameters.
+
+**참고:** `AbilityTasks`는 한 가지 유형의 출력 대리자만 선언할 수 있습니다. 매개변수를 사용하는지 여부에 관계없이 모든 출력 대리자는 이 유형이어야 합니다. 사용하지 않는 대리자 매개변수에 대한 기본값을 전달합니다.
 
 `AbilityTasks` only run on the Client or Server that is running the owning `GameplayAbility`; however, `AbilityTasks` can be set to run on simulated clients by setting `bSimulatedTask = true;` in the `AbilityTask` constructor, overriding `virtual void InitSimulatedTask(UGameplayTasksComponent& InGameplayTasksComponent);`, and setting any member variables to be replicated. This is only useful in rare situations like movement `AbilityTasks` where you don't want to replicate every movement change but instead simulate the entire movement `AbilityTask`. All of the `RootMotionSource` `AbilityTasks` do this. See `AbilityTask_MoveToLocation.h/.cpp` as an example.
 
+`AbilityTasks`는 소유 `GameplayAbility`를 실행하는 클라이언트 또는 서버에서만 실행됩니다. 그러나 `AbilityTask` 생성자에서 `bSimulatedTask = true;`를 설정하고 `virtual void InitSimulatedTask(UGameplayTasksComponent& InGameplayTasksComponent);`를 재정의하고 복제할 멤버 변수를 설정하여 시뮬레이션된 클라이언트에서 실행되도록 `AbilityTasks`를 설정할 수 있습니다. 이것은 모든 움직임 변화를 복제하고 싶지 않고 대신 전체 움직임 'AbilityTask'를 시뮬레이션하는 'AbilityTasks' 움직임과 같은 드문 상황에서만 유용합니다. 모든 `RootMotionSource` `AbilityTasks`가 이 작업을 수행합니다. 예를 들어 `AbilityTask_MoveToLocation.h/.cpp`를 참조하십시오.
+
 `AbilityTasks` can `Tick` if you set `bTickingTask = true;` in the `AbilityTask` constructor and override `virtual void TickTask(float DeltaTime);`. This is useful when you need to lerp values smoothly across frames. See `AbilityTask_MoveToLocation.h/.cpp` as an example.
+
+`AbilityTask` 생성자에서 `bTickingTask = true;`를 설정하고 `virtual void TickTask(float DeltaTime);`를 재정의하면 `AbilityTasks`가 `Tick`할 수 있습니다. 이것은 프레임 간에 부드럽게 값을 lerp해야 할 때 유용합니다. 예를 들어 `AbilityTask_MoveToLocation.h/.cpp`를 참조하십시오.
 
 **[⬆ Back to Top](#table-of-contents)**
 
@@ -2880,9 +2923,13 @@ Task->ReadyForActivation();
 
 In Blueprint, we just use the Blueprint node that we create for the `AbilityTask`. We don't have to call `ReadyForActivate()`. That is automatically called by `Engine/Source/Editor/GameplayTasksEditor/Private/K2Node_LatentGameplayTaskCall.cpp`. `K2Node_LatentGameplayTaskCall` also automatically calls `BeginSpawningActor()` and `FinishSpawningActor()` if they exist in your `AbilityTask` class (see `AbilityTask_WaitTargetData`). To reiterate, `K2Node_LatentGameplayTaskCall` only does automagic sorcery for Blueprint. In C++, we have to manually call `ReadyForActivation()`, `BeginSpawningActor()`, and `FinishSpawningActor()`.
 
+블루프린트에서는 'AbilityTask'용으로 생성한 블루프린트 노드만 사용합니다. 우리는 `ReadyForActivate()`를 호출할 필요가 없습니다. 그것은 `Engine/Source/Editor/GameplayTasksEditor/Private/K2Node_LatentGameplayTaskCall.cpp`에 의해 자동으로 호출됩니다. `K2Node_LatentGameplayTaskCall`은 `BeginSpawningActor()` 및 `FinishSpawningActor()`가 `AbilityTask` 클래스에 있는 경우 자동으로 호출하기도 합니다(`AbilityTask_WaitTargetData` 참조). 다시 말하지만 `K2Node_LatentGameplayTaskCall`은 블루프린트에 대한 자동 마법만 수행합니다. C++에서는 `ReadyForActivation()`, `BeginSpawningActor()`, `FinishSpawningActor()`를 수동으로 호출해야 합니다.
+
 ![Blueprint WaitTargetData AbilityTask](https://github.com/tranek/GASDocumentation/raw/master/Images/abilitytask.png)
 
 To manually cancel an `AbilityTask`, just call `EndTask()` on the `AbilityTask` object in Blueprint (called `Async Task Proxy`) or in C++.
+
+`AbilityTask`를 수동으로 취소하려면 Blueprint(`Async Task Proxy`라고 함) 또는 C++의 `AbilityTask` 객체에서 `EndTask()`를 호출하면 됩니다.
 
 **[⬆ Back to Top](#table-of-contents)**
 
@@ -2890,7 +2937,11 @@ To manually cancel an `AbilityTask`, just call `EndTask()` on the `AbilityTask` 
 ### 4.7.4 Root Motion Source Ability Tasks
 GAS comes with `AbilityTasks` for moving `Characters` over time for things like knockbacks, complex jumps, pulls, and dashes using `Root Motion Sources` hooked into the `CharacterMovementComponent`.
 
+GAS에는 'CharacterMovementComponent'에 연결된 'Root Motion Sources'를 사용하여 넉백, 복잡한 점프, 당기기 및 대시와 같은 항목에 대해 시간이 지남에 따라 'Characters'를 이동하는 'AbilityTasks'가 함께 제공됩니다.
+
 **Note:** Predicting `RootMotionSource` `AbilityTasks` works up to engine version 4.19 and 4.25+. Prediction is bugged for engine versions 4.20-4.24; however, the `AbilityTasks` still perform their function in multiplayer with minor net corrections and work perfectly in single player. It is possible to cherry pick the [prediction fix](https://github.com/EpicGames/UnrealEngine/commit/94107438dd9f490e7b743f8e13da46927051bf33#diff-65f6196f9f28f560f95bd578e07e290c) from 4.25 into a custom 4.20-4.24 engine.
+
+**참고:** 예측 `RootMotionSource` `AbilityTasks`는 엔진 버전 4.19 및 4.25+까지 작동합니다. 엔진 버전 4.20-4.24에 대한 예측이 버그가 있습니다. 그러나 'AbilityTasks'는 약간의 네트워크 수정으로 멀티플레이어에서 여전히 기능을 수행하고 싱글 플레이어에서 완벽하게 작동합니다. 4.25에서 사용자 지정 4.20-4.24 엔진으로 예측 수정 사항을 선택하는 것이 가능합니다.
 
 **[⬆ Back to Top](#table-of-contents)**
 
@@ -2901,24 +2952,46 @@ GAS comes with `AbilityTasks` for moving `Characters` over time for things like 
 #### 4.8.1 Gameplay Cue Definition
 `GameplayCues` (`GC`) execute non-gameplay related things like sound effects, particle effects, camera shakes, etc. `GameplayCues` are typically replicated (unless explicitly `Executed`, `Added`, or `Removed` locally) and predicted.
 
+`GameplayCues`(`GC`)는 사운드 효과, 파티클 효과, 카메라 흔들림 등과 같은 게임플레이와 관련되지 않은 것을 실행합니다. `GameplayCues`는 일반적으로 복제됩니다(명시적으로 로컬에서 `Executed`, `Added` 또는 `Removed`가 아닌 경우). 예측했다.
+
 We trigger `GameplayCues` by sending a corresponding `GameplayTag` with the **mandatory parent name of `GameplayCue.`** and an event type (`Execute`, `Add`, or `Remove`) to the `GameplayCueManager` via the `ASC`. `GameplayCueNotify` objects and other `Actors` that implement the `IGameplayCueInterface` can subscribe to these events based on the `GameplayCue's` `GameplayTag` (`GameplayCueTag`).
+
+**필수 상위 이름인 `GameplayCue.`**와 이벤트 유형(`Execute`, `Add` 또는 `Remove`)이 있는 해당 `GameplayTag`를 다음을 통해 `GameplayCueManager`에 전송하여 `GameplayCues`를 트리거합니다. 'ASC'. 'GameplayCueNotify' 객체 및 'IGameplayCueInterface'를 구현하는 기타 '액터'는 'GameplayCue'의 'GameplayTag'('GameplayCueTag')를 기반으로 이러한 이벤트를 구독할 수 있습니다.
 
 **Note:** Just to reiterate, `GameplayCue` `GameplayTags` need to start with the parent `GameplayTag` of `GameplayCue`. So for example, a valid `GameplayCue` `GameplayTag` might be `GameplayCue.A.B.C`.
 
+**참고:** 다시 말하지만 `GameplayCue` `GameplayTags`는 `GameplayCue`의 상위 `GameplayTag`로 시작해야 합니다. 예를 들어 유효한 `GameplayCue` `GameplayTag`는 `GameplayCue.ABC`일 수 있습니다.
+
 There are two classes of `GameplayCueNotifies`, `Static` and `Actor`. They respond to different events and different types of `GameplayEffects` can trigger them. Override the corresponding event with your logic.
+
+'GameplayCueNotify', 'Static' 및 'Actor'의 두 가지 클래스가 있습니다. 그들은 다양한 이벤트에 반응하고 다양한 유형의 'GameplayEffects'가 이를 트리거할 수 있습니다. 논리로 해당 이벤트를 재정의합니다.
 
 | `GameplayCue` Class                                                                                                                  | Event             | `GameplayEffect` Type    | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | ------------------------------------------------------------------------------------------------------------------------------------ | ----------------- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [`GameplayCueNotify_Static`](https://docs.unrealengine.com/en-US/API/Plugins/GameplayAbilities/UGameplayCueNotify_Static/index.html) | `Execute`         | `Instant` or `Periodic`  | Static `GameplayCueNotifies` operate on the `ClassDefaultObject` (meaning no instances) and are perfect for one-off effects like hit impacts.                                                                                                                                                                                                                                                                                                                                                                        |
 | [`GameplayCueNotify_Actor`](https://docs.unrealengine.com/en-US/BlueprintAPI/GameplayCueNotify/index.html)                           | `Add` or `Remove` | `Duration` or `Infinite` | Actor `GameplayCueNotifies` spawn a new instance when `Added`. Because these are instanced, they can do actions over time until they are `Removed`. These are good for looping sounds and particle effects that will be removed when the backing `Duration` or `Infinite` `GameplayEffect` is removed or by manually calling remove. These also come with options to manage how many are allowed to be `Added` at the same so that multiple applications of the same effect only start the sounds or particles once. |
 
+
+| `GameplayCue` 클래스 | 이벤트 | `GameplayEffect` 유형 | 설명 |
+| -------------------------------------------------- -------------------------------------------------- -------------------------------- | ------------------ | ------------------------ | -------------------------------------------------- -------------------------------------------------- -------------------------------------------------- -------------------------------------------------- -------------------------------------------------- -------------------------------------------------- -------------------------------------------------- -------------------------------------------------- -------------------------------------------------- -------------------------------------------------- |
+| `GameplayCueNotify_Static` | `실행` | `즉시` 또는 `정기` | 정적 'GameplayCueNotify'는 'ClassDefaultObject'(인스턴스가 없음을 의미)에서 작동하며 적중 충격과 같은 일회성 효과에 적합합니다. |
+| `GameplayCueNotify_Actor` | '추가' 또는 '제거' | '기간' 또는 '무한' | 액터 'GameplayCueNotify'는 'Added' 시 새 인스턴스를 생성합니다. 이들은 인스턴스화되기 때문에 '제거'될 때까지 시간이 지남에 따라 작업을 수행할 수 있습니다. 이는 뒷받침하는 `Duration` 또는 `Infinite` `GameplayEffect`가 제거되거나 수동으로 제거를 호출하여 제거될 반복 사운드 및 입자 효과에 좋습니다. 여기에는 동일한 효과의 여러 응용 프로그램이 사운드 또는 입자를 한 번만 시작하도록 동시에 '추가'할 수 있는 수를 관리하는 옵션도 함께 제공됩니다. |
+
+
+
 `GameplayCueNotifies` technically can respond to any of the events but this is typically how we use them.
 
 **Note:** When using `GameplayCueNotify_Actor`, check `Auto Destroy on Remove` otherwise subsequent calls to `Add` that `GameplayCueTag` won't work.
 
+'GameplayCueNotify'는 기술적으로 모든 이벤트에 응답할 수 있지만 일반적으로 이것이 사용하는 방법입니다.
+
 When using an `ASC` [Replication Mode](#concepts-asc-rm) other than `Full`, `Add` and `Remove` `GC` events will fire twice on Server players (listen server) - once for applying the `GE` and again from the "Minimal" `NetMultiCast` to the clients. However, `WhileActive` events will still only fire once. All events will only fire once on clients.
 
+`ASC` 복제 모드를 사용할 때 - 한 번은 `GE`를 적용하고 다시 "Minimal" `NetMultiCast`에서 클라이언트로. 그러나 'WhileActive' 이벤트는 여전히 한 번만 실행됩니다. 모든 이벤트는 클라이언트에서 한 번만 실행됩니다.
+
 The Sample Project includes a `GameplayCueNotify_Actor` for stun and sprint effects. It also has a `GameplayCueNotify_Static` for the FireGun's projectile impact. These `GCs` can be optimized further by [triggering them locally](#concepts-gc-local) instead of replicating them through a `GE`. I opted for showing the beginner way of using them in the Sample Project.
+
+샘플 프로젝트에는 기절 및 질주 효과를 위한 'GameplayCueNotify_Actor'가 포함되어 있습니다. FireGun의 발사체 충격에 대한 'GameplayCueNotify_Static'도 있습니다. 이러한 'GC'는 'GE'를 통해 복제하는 대신 로컬에서 트리거하여 추가로 최적화할 수 있습니다. 나는 샘플 프로젝트에서 그것들을 사용하는 초보자 방법을 보여주기로 선택했습니다.
 
 **[⬆ Back to Top](#table-of-contents)**
 
@@ -2927,13 +3000,19 @@ The Sample Project includes a `GameplayCueNotify_Actor` for stun and sprint effe
 
 From inside of a `GameplayEffect` when it is successfully applied (not blocked by tags or immunity), fill in the `GameplayTags` of all the `GameplayCues` that should be triggered.
 
+성공적으로 적용되었을 때 `GameplayEffect` 내부에서(태그나 면역에 의해 차단되지 않음), 트리거되어야 하는 모든 `GameplayCues`의 `GameplayTags`를 채우십시오.
+
 ![GameplayCue Triggered from a GameplayEffect](https://github.com/tranek/GASDocumentation/raw/master/Images/gcfromge.png)
 
 `UGameplayAbility` offers Blueprint nodes to `Execute`, `Add`, or `Remove` `GameplayCues`.
 
+'UGameplayAbility'는 'GameplayCues'를 '실행', '추가' 또는 '제거'할 수 있는 블루프린트 노드를 제공합니다.
+
 ![GameplayCue Triggered from a GameplayAbility](https://github.com/tranek/GASDocumentation/raw/master/Images/gcfromga.png)
 
 In C++, you can call functions directly on the `ASC` (or expose them to Blueprint in your `ASC` subclass):
+
+C++에서는 `ASC`에서 직접 함수를 호출할 수 있습니다(또는 `ASC` 하위 클래스의 Blueprint에 노출):
 
 ```c++
 /** GameplayCues can also come on their own. These take an optional effect context to pass through hit result, etc */
@@ -2957,13 +3036,21 @@ void RemoveAllGameplayCues();
 #### 4.8.3 Local Gameplay Cues
 The exposed functions for firing `GameplayCues` from `GameplayAbilities` and the `ASC` are replicated by default. Each `GameplayCue` event is a multicast RPC. This can cause a lot of RPCs. GAS also enforces a maximum of two of the same `GameplayCue` RPCs per net update. We avoid this by using local `GameplayCues` where we can. Local `GameplayCues` only `Execute`, `Add`, or `Remove` on the individual client.
 
+`GameplayAbilities` 및 `ASC`에서 `GameplayCues`를 실행하기 위해 노출된 함수는 기본적으로 복제됩니다. 각 'GameplayCue' 이벤트는 멀티캐스트 RPC입니다. 이로 인해 많은 RPC가 발생할 수 있습니다. GAS는 또한 네트 업데이트당 동일한 'GameplayCue' RPC를 최대 2개까지 적용합니다. 가능한 한 로컬 'GameplayCues'를 사용하여 이를 방지합니다. 로컬 'GameplayCues'는 개별 클라이언트의 '실행', '추가' 또는 '제거'만 가능합니다.
+
 Scenarios where we can use local `GameplayCues`:
 * Projectile impacts
 * Melee collision impacts
 * `GameplayCues` fired from animation montages
 
-Local `GameplayCue` functions that you should add to your `ASC` subclass:
+로컬 `GameplayCues`를 사용할 수 있는 시나리오:
+* 발사체 충돌
+* 근접 충돌 충격
+* 애니메이션 몽타주에서 실행된 `GameplayCues`
 
+
+Local `GameplayCue` functions that you should add to your `ASC` subclass:
+`ASC` 서브클래스에 추가해야 하는 로컬 `GameplayCue` 함수:
 ```c++
 UFUNCTION(BlueprintCallable, Category = "GameplayCue", Meta = (AutoCreateRefTerm = "GameplayCueParameters", GameplayTagFilter = "GameplayCue"))
 void ExecuteGameplayCueLocal(const FGameplayTag GameplayCueTag, const FGameplayCueParameters& GameplayCueParameters);
@@ -2995,11 +3082,14 @@ void UPAAbilitySystemComponent::RemoveGameplayCueLocal(const FGameplayTag Gamepl
 
 If a `GameplayCue` was `Added` locally, it should be `Removed` locally. If it was `Added` via replication, it should be `Removed` via replication.
 
+'GameplayCue'가 로컬에서 '추가'된 경우 로컬에서 '제거'되어야 합니다. 복제를 통해 '추가'된 경우 복제를 통해 '제거'되어야 합니다.
+
 **[⬆ Back to Top](#table-of-contents)**
 
 <a name="concepts-gc-parameters"></a>
 #### 4.8.4 Gameplay Cue Parameters
-`GameplayCues` receive a `FGameplayCueParameters` structure containing extra information for the `GameplayCue` as a parameter. If you manually trigger the `GameplayCue` from a function on the `GameplayAbility` or the `ASC`, then you must manually fill in the `GameplayCueParameters` structure that is passed to the `GameplayCue`. If the `GameplayCue` is triggered by a `GameplayEffect`, then the following variables are automatically filled in on the `GameplayCueParameters` structure:
+`GameplayCues` receive a `FGameplayCueParameters` structure containing extra information for the `GameplayCue` as a parameter. If you manually trigger the `GameplayCue` from a function on the `GameplayAbility` or the `ASC`, then you must manually fill in the `GameplayCueParameters` structure that is passed to the `GameplayCue`. If the `GameplayCue` is triggered by a `GameplayEffect`, then the following variables are automatically filled in on the `GameplayCueParameters` 
+structure:
 
 * AggregatedSourceTags
 * AggregatedTargetTags
@@ -3008,11 +3098,28 @@ If a `GameplayCue` was `Added` locally, it should be `Removed` locally. If it wa
 * [EffectContext](#concepts-ge-context)
 * Magnitude (if the `GameplayEffect` has an `Attribute` for magnitude selected in the dropdown above the `GameplayCue` tag container and a corresponding `Modifier` that affects that `Attribute`)
 
+
+`GameplayCues`는 `GameplayCue`에 대한 추가 정보가 포함된 `FGameplayCueParameters` 구조를 매개변수로 받습니다. 'GameplayAbility' 또는 'ASC'의 함수에서 'GameplayCue'를 수동으로 트리거하는 경우 'GameplayCue'에 전달되는 'GameplayCueParameters' 구조를 수동으로 채워야 합니다. 'GameplayCue'가 'GameplayEffect'에 의해 트리거되면 다음 변수가 'GameplayCueParameters' 구조에 자동으로 채워집니다.:
+
+* 집계 소스 태그
+* AggregatedTargetTags
+* 게임 플레이 효과 레벨
+* 능력레벨
+* 효과 컨텍스트
+* 크기('GameplayEffect'에 'GameplayCue' 태그 컨테이너 위의 드롭다운에서 선택한 크기에 대한 '속성'과 해당 '속성'에 영향을 주는 해당 '수정자'가 있는 경우)
+
+
 The `SourceObject` variable in the `GameplayCueParameters` structure is potentially a good place to pass arbitrary data to the `GameplayCue` when triggering the `GameplayCue` manually.
+
+`GameplayCueParameters` 구조의 `SourceObject` 변수는 잠재적으로 `GameplayCue`를 수동으로 트리거할 때 `GameplayCue`에 임의의 데이터를 전달할 수 있는 좋은 위치입니다.
 
 **Note:** Some of the variables in the parameters structure like `Instigator` might already exist in the `EffectContext`. The `EffectContext` can also contain a `FHitResult` for location of where to spawn the `GameplayCue` in the world. Subclassing `EffectContext` is potentially a good way to pass more data to `GameplayCues`, especially those triggered by a `GameplayEffect`.
 
+**참고:** `Instigator`와 같은 매개변수 구조의 일부 변수는 이미 `EffectContext`에 존재할 수 있습니다. 'EffectContext'에는 월드에서 'GameplayCue'를 스폰할 위치에 대한 'FHitResult'도 포함될 수 있습니다. `EffectContext`를 서브클래싱하는 것은 잠재적으로 `GameplayCues`에 더 많은 데이터, 특히 `GameplayEffect`에 의해 트리거되는 데이터를 전달하는 좋은 방법입니다.
+
 See the 3 functions in [`UAbilitySystemGlobals`](#concepts-asg) that populate the `GameplayCueParameters` structure for more information. They are virtual so you can override them to autopopulate more information.
+
+자세한 내용은 `GameplayCueParameters` 구조를 채우는 `UAbilitySystemGlobals`의 3가지 함수를 참조하세요. 그것들은 가상이므로 더 많은 정보를 자동으로 채우도록 재정의할 수 있습니다.
 
 ```c++
 /** Initialize GameplayCue Parameters */
@@ -3027,6 +3134,8 @@ virtual void InitGameplayCueParameters(FGameplayCueParameters& CueParameters, co
 #### 4.8.5 Gameplay Cue Manager
 By default, the `GameplayCueManager` will scan the entire game directory for `GameplayCueNotifies` and load them into memory on play. We can change the path where the `GameplayCueManager` scans by setting it in the `DefaultGame.ini`.
 
+기본적으로 `GameplayCueManager`는 `GameplayCueNotify`에 대한 전체 게임 디렉토리를 스캔하고 플레이 시 메모리에 로드합니다. `DefaultGame.ini`에서 설정하여 `GameplayCueManager`가 스캔하는 경로를 변경할 수 있습니다.
+
 ```
 [/Script/GameplayAbilities.AbilitySystemGlobals]
 GameplayCueNotifyPaths="/Game/GASDocumentation/Characters"
@@ -3034,9 +3143,15 @@ GameplayCueNotifyPaths="/Game/GASDocumentation/Characters"
 
 We do want the `GameplayCueManager` to scan and find all of the `GameplayCueNotifies`; however, we don't want it to async load every single one on play. This will put every `GameplayCueNotify` and all of their referenced sounds and particles into memory regardless if they're even used in a level. In a large game like Paragon, this can be hundreds of megabytes of unneeded assets in memory and cause hitching and game freezes on startup.
 
+우리는 `GameplayCueManager`가 모든 `GameplayCueNotify`를 스캔하고 찾기를 원합니다. 그러나 우리는 그것이 플레이에 있는 모든 것을 비동기적으로 로드하는 것을 원하지 않습니다. 이렇게 하면 모든 'GameplayCueNotify'와 참조된 모든 사운드 및 파티클이 레벨에서 사용되는지 여부에 관계없이 메모리에 저장됩니다. Paragon과 같은 대형 게임에서는 메모리에 수백 메가바이트의 불필요한 자산이 있을 수 있으며 시작 시 끊김 및 게임 정지가 발생할 수 있습니다.
+
 An alternative to async loading every `GameplayCue` on startup is to only async load `GameplayCues` as they're triggered in-game. This mitigates the unnecessary memory usage and potential game hard freezes while async loading every `GameplayCue` in exchange for potentially delayed effects for the first time that a specific `GameplayCue` is triggered during play. This potential delay is nonexistent for SSDs. I have not tested on a HDD. If using this option in the UE Editor, there may be slight hitches or freezes during the first load of GameplayCues if the Editor needs to compile particle systems. This is not an issue in builds as the particle systems will already be compiled.
 
+시작 시 모든 'GameplayCue'를 비동기식으로 로드하는 대신 게임 내에서 트리거될 때 'GameplayCues'만 비동기식으로 로드합니다. 이렇게 하면 재생 중에 특정 'GameplayCue'가 처음으로 트리거되는 잠재적 지연 효과에 대한 대가로 모든 'GameplayCue'를 비동기적으로 로드하는 동안 불필요한 메모리 사용량과 잠재적인 게임 하드 정지가 완화됩니다. 이 잠재적 지연은 SSD에 존재하지 않습니다. 나는 HDD에서 테스트하지 않았습니다. UE 에디터에서 이 옵션을 사용하는 경우 에디터가 파티클 시스템을 컴파일해야 하는 경우 GameplayCues의 첫 번째 로드 중에 약간의 끊김이나 정지가 있을 수 있습니다. 파티클 시스템은 이미 컴파일되어 있으므로 빌드에서는 문제가 되지 않습니다.
+
 First we must subclass `UGameplayCueManager` and tell the `AbilitySystemGlobals` class to use our `UGameplayCueManager` subclass in `DefaultGame.ini`.
+
+먼저 `UGameplayCueManager`를 서브클래싱하고 `DefaultGame.ini`에서 `UGameplayCueManager` 서브클래스를 사용하도록 `AbilitySystemGlobals` 클래스에 지시해야 합니다.
 
 ```
 [/Script/GameplayAbilities.AbilitySystemGlobals]
@@ -3058,7 +3173,13 @@ virtual bool ShouldAsyncLoadRuntimeObjectLibraries() const override
 #### 4.8.6 Prevent Gameplay Cues from Firing
 Sometimes we don't want `GameplayCues` to fire. For example if we block an attack, we may not want to play the hit impact attached to the damage `GameplayEffect` or play a custom one instead. We can do this inside of [`GameplayEffectExecutionCalculations`](#concepts-ge-ec) by calling `OutExecutionOutput.MarkGameplayCuesHandledManually()` and then manually sending our `GameplayCue` event to the `Target` or `Source's` `ASC`.
 
+때때로 우리는 `GameplayCues`가 실행되는 것을 원하지 않습니다. 예를 들어 공격을 차단하는 경우 'GameplayEffect' 손상에 연결된 타격 충격을 재생하거나 대신 사용자 지정 충격을 재생하고 싶지 않을 수 있습니다. `GameplayEffectExecutionCalculations`` 내부에서 이 작업을 수행한 다음 `GameplayCue` 이벤트를 `Target` 또는 `Source'의 `ASC`에 수동으로 보낼 수 있습니다.
+
 If you never want any `GameplayCues` to fire on a specific `ASC`, you can set `AbilitySystemComponent->bSuppressGameplayCues = true;`.
+
+특정 `ASC`에서 `GameplayCues`가 실행되는 것을 원하지 않으면 `AbilitySystemComponent->bSuppressGameplayCues = true;`로 설정할 수 있습니다.
+
+
 
 **[⬆ Back to Top](#table-of-contents)**
 
@@ -3066,22 +3187,37 @@ If you never want any `GameplayCues` to fire on a specific `ASC`, you can set `A
 #### 4.8.7 Gameplay Cue Batching
 Each `GameplayCue` triggered is an unreliable NetMulticast RPC. In situations where we fire multiple `GCs` at the same time, there are a few optimization methods to condense them down into one RPC or save bandwidth by sending less data.
 
+트리거된 각 'GameplayCue'는 신뢰할 수 없는 NetMulticast RPC입니다. 여러 `GC`를 동시에 실행하는 상황에서 하나의 RPC로 압축하거나 더 적은 데이터를 전송하여 대역폭을 절약하는 몇 가지 최적화 방법이 있습니다.
+
 <a name="concepts-gc-batching-manualrpc"></a>
 ##### 4.8.7.1 Manual RPC
 Say you have a shotgun that shoots eight pellets. That's eight trace and impact `GameplayCues`. [GASShooter](https://github.com/tranek/GASShooter) takes the lazy approach of combining them into one RPC by stashing all of the trace information into the [`EffectContext`](#concepts-ge-ec) as [`TargetData`](#concepts-targeting-data). While this reduces the RPCs from eight to one, it still sends a lot of data over the network in that one RPC (~500 bytes). A more optimized approach is to send an RPC with a custom struct where you efficiently encode the hit locations or maybe you give it a random seed number to recreate/approximate the impact locations on the receiving side. The clients would then unpack this custom struct and turn back into [locally executed `GameplayCues`](#concepts-gc-local).
+
+8개의 알약을 쏘는 산탄총이 있다고 가정해 보겠습니다. 8개의 추적 및 영향 'GameplayCues'입니다. GASShooter는 모든 추적 정보를 `TargetData`로 `EffectContext`에 숨김으로써 하나의 RPC로 결합하는 게으른 접근 방식을 취합니다. 이렇게 하면 RPC가 8개에서 1개로 줄어들지만 여전히 네트워크를 통해 많은 데이터를 전송합니다. 하나의 RPC(~500바이트). 보다 최적화된 접근 방식은 적중 위치를 효율적으로 인코딩하거나 수신 측의 영향 위치를 재창조/근사화하기 위해 임의의 시드 번호를 제공하는 사용자 지정 구조체와 함께 RPC를 보내는 것입니다. 그런 다음 클라이언트는 이 커스텀 구조체의 압축을 풀고 로컬에서 실행되는 `GameplayCues`로 돌아갑니다.
 
 How this works:
 1. Declare a `FScopedGameplayCueSendContext`. This suppresses `UGameplayCueManager::FlushPendingCues()` until it falls out of scope, meaning all `GameplayCues` will be queued up until the `FScopedGameplayCueSendContext` falls out of scope.
 1. Override `UGameplayCueManager::FlushPendingCues()` to merge `GameplayCues` that can be batched together based on some custom `GameplayTag` into your custom struct and RPC it to clients.
 1. Clients receive the custom struct and unpack it into locally executed `GameplayCues`.
 
+
+작동 방식:
+1. 'FScopedGameplayCueSendContext'를 선언합니다. 이렇게 하면 범위를 벗어날 때까지 `UGameplayCueManager::FlushPendingCues()`가 억제됩니다. 즉, 모든 `GameplayCues`는 `FScopedGameplayCueSendContext`가 범위를 벗어날 때까지 대기열에 추가됩니다.
+1. `UGameplayCueManager::FlushPendingCues()`를 재정의하여 일부 사용자 정의 `GameplayTag`를 기반으로 일괄 처리할 수 있는 `GameplayCues`를 사용자 정의 구조체에 병합하고 이를 클라이언트에 RPC합니다.
+1. 클라이언트는 커스텀 구조체를 받아 로컬에서 실행되는 `GameplayCues`에 압축을 풉니다.
+
+
 This method can also be used when you need specific parameters for your `GameplayCues` that don't fit with what `GameplayCueParameters` offer and you don't want to add them to the `EffectContext` like damage numbers, crit indicator, broken shield indicator, was fatal hit indicator, etc.
+
+이 방법은 `GameplayCueParameters`가 제공하는 것과 맞지 않는 `GameplayCues`에 대한 특정 매개변수가 필요하고 피해 수치, 치명타 표시기, 깨진 방패와 같이 `EffectContext`에 추가하고 싶지 않은 경우에도 사용할 수 있습니다. 표시기, 치명타 표시기 등이었습니다.
 
 https://forums.unrealengine.com/development-discussion/c-gameplay-programming/1711546-fscopedgameplaycuesendcontext-gameplaycuemanager
 
 <a name="concepts-gc-batching-gcsonge"></a>
 ##### 4.8.7.2 Multiple GCs on one GE
 All of the `GameplayCues` on a `GameplayEffect` are sent in one RPC already. By default, `UGameplayCueManager::InvokeGameplayCueAddedAndWhileActive_FromSpec()` will send the whole `GameplayEffectSpec` (but converted to `FGameplayEffectSpecForRPC`) in the unreliable NetMulticast regardless of the `ASC`'s `Replication Mode`. This could potentially be a lot of bandwidth depending on what is in the `GameplayEffectSpec`. We can potentially optimize this by setting the cvar `AbilitySystem.AlwaysConvertGESpecToGCParams 1`. This will convert `GameplayEffectSpecs` to `FGameplayCueParameter` structures and RPC those instead of the whole `FGameplayEffectSpecForRPC`. This potentially saves bandwidth but also has less information, depending on how the `GESpec` is converted to `GameplayCueParameters` and what your `GCs` need to know.
+
+'GameplayEffect'의 모든 'GameplayCues'는 이미 하나의 RPC로 전송됩니다. 기본적으로 `UGameplayCueManager::InvokeGameplayCueAddedAndWhileActive_FromSpec()`은 `ASC`의 `복제 모드`에 관계없이 신뢰할 수 없는 NetMulticast에서 전체 `GameplayEffectSpec`(그러나 `FGameplayEffectSpecForRPC`로 변환됨)을 보냅니다. 이것은 `GameplayEffectSpec`에 무엇이 있는지에 따라 잠재적으로 많은 대역폭이 될 수 있습니다. cvar `AbilitySystem.AlwaysConvertGESpecToGCParams 1`을 설정하여 이를 잠재적으로 최적화할 수 있습니다. 이것은 `GameplayEffectSpecs`를 `FGameplayCueParameter` 구조로 변환하고 전체 `FGameplayEffectSpecForRPC` 대신 RPC를 RPC합니다. 이렇게 하면 잠재적으로 대역폭을 절약할 수 있지만 `GESpec`이 `GameplayCueParameters`로 변환되는 방식과 `GC`가 알아야 할 사항에 따라 정보가 더 적습니다.
 
 **[⬆ Back to Top](#table-of-contents)**
 
@@ -3096,7 +3232,19 @@ All of the `GameplayCues` on a `GameplayEffect` are sent in one RPC already. By 
 | `Removed`           | Called when a `GameplayCue` is removed. The Blueprint `GameplayCue` function that responds to this event is `OnRemove`.                                                                                                                                                                                                             |
 | `Executed`          | Called when a `GameplayCue` is executed: instant effects or periodic `Tick()`. The Blueprint `GameplayCue` function that responds to this event is `OnExecute`.                                                                                                                                                                     |
 
+`GameplayCues`는 특정 `EGameplayCueEvents`에 응답합니다.
+
+| `EGameplayCueEvent` | 설명 |
+| ------------------- | -------------------------------------------------- -------------------------------------------------- -------------------------------------------------- -------------------------------------------------- -------------------------------------------------- -------------------------------------------------- ----------------------- |
+| `온액티브` | 'GameplayCue'가 활성화(추가)되면 호출됩니다. |
+| `활성 상태에서` | 'GameplayCue'가 활성화될 때 호출됩니다. 실제로 방금 적용되지 않았더라도(Join in progress 등). 이것은 '틱'이 아닙니다! 'GameplayCueNotify_Actor'가 추가되거나 관련될 때 'OnActive'처럼 한 번 호출됩니다. `Tick()`이 필요한 경우 `GameplayCueNotify_Actor`의 `Tick()`을 사용하세요. 결국 'AActor'다. |
+| `제거됨` | 'GameplayCue'가 제거될 때 호출됩니다. 이 이벤트에 응답하는 블루프린트 'GameplayCue' 함수는 'OnRemove'입니다. |
+| `실행` | 'GameplayCue'가 실행될 때 호출됩니다: 인스턴트 효과 또는 주기적 'Tick()'. 이 이벤트에 응답하는 블루프린트 'GameplayCue' 함수는 'OnExecute'입니다. |
+
+
 Use `OnActive` for anything in your `GameplayCue` that happen at the start of the `GameplayCue` but is okay if late joiners miss. Use `WhileActive` for ongoing effects in the `GameplayCue` that you would want late joiners to see. For example, if you have a `GameplayCue` for a tower structure in a MOBA exploding, you would put the initial explosion particle system and explosion sound in `OnActive` and you would put any residual ongoing fire particles or sounds in the `WhileActive`. In this scenario, it wouldn't make sense for late joiners to replay the initial explosion from `OnActive`, but you would want them to see the persistent, looping fire effects on the ground after the explosion happened from `WhileActive`. `OnRemove` should clean up anything added in `OnActive` and `WhileActive`. `WhileActive` will be called every time an Actor enters the relevancy range of a `GameplayCueNotify_Actor`. `OnRemove` will be called every time an Actor leaves relevancy range of a `GameplayCueNotify_Actor`.
+
+'Gameplay Cue'가 시작될 때 발생하는 'Gameplay Cue'의 모든 항목에 대해 'OnActive'를 사용하지만 늦게 참여하는 사람이 놓치면 괜찮습니다. 늦게 합류하는 사람들이 보고 싶은 `GameplayCue`의 지속적인 효과를 보려면 `WhileActive`를 사용하십시오. 예를 들어, MOBA 폭발의 타워 구조에 대한 'GameplayCue'가 있는 경우 초기 폭발 입자 시스템과 폭발 사운드를 'OnActive'에 넣고 진행 중인 잔여 화재 입자나 소리를 'WhileActive'에 넣습니다. . 이 시나리오에서 후기 합류자가 'OnActive'의 초기 폭발을 재생하는 것은 이치에 맞지 않지만, 'WhileActive'에서 폭발이 발생한 후 지상에서 지속적이고 반복되는 화재 효과를 보기를 원할 것입니다. `OnRemove`는 `OnActive` 및 `WhileActive`에 추가된 모든 것을 정리해야 합니다. 액터가 'GameplayCueNotify_Actor'의 관련성 범위에 들어갈 때마다 'WhileActive'가 호출됩니다. 액터가 'GameplayCueNotify_Actor'의 관련성 범위를 벗어날 때마다 'OnRemove'가 호출됩니다.
 
 **[⬆ Back to Top](#table-of-contents)**
 
@@ -3105,7 +3253,11 @@ Use `OnActive` for anything in your `GameplayCue` that happen at the start of th
 
 `GameplayCues` in general should be considered unreliable and thus unsuited for anything that directly affects gameplay.
 
+일반적으로 `GameplayCues`는 신뢰할 수 없는 것으로 간주되어야 하므로 게임 플레이에 직접적인 영향을 미치는 모든 것에 적합하지 않습니다.
+
 **Executed `GameplayCues`:** These `GameplayCues` are applied via unreliable multicasts and are always unreliable.
+
+**실행된 `GameplayCues`:** 이 `GameplayCues`는 신뢰할 수 없는 멀티캐스트를 통해 적용되며 항상 신뢰할 수 없습니다.
 
 **`GameplayCues` applied from `GameplayEffects`:**
 * Autonomous proxy reliably receives `OnActive`, `WhileActive`, and `OnRemove`  
@@ -3113,13 +3265,29 @@ Use `OnActive` for anything in your `GameplayCue` that happen at the start of th
 * Simulated proxies reliably receive `WhileActive` and `OnRemove`  
 `UAbilitySystemComponent::MinimalReplicationGameplayCues`'s replication calls `WhileActive` and `OnRemove`. The `OnActive` event is called by an unreliable multicast.
 
+**`GameplayEffects`에서 적용된 `GameplayCues`:**
+* 자율 프록시는 'OnActive', 'WhileActive' 및 'OnRemove'를 안정적으로 수신합니다.
+`FACiveGameplayEffectsContainer::NetDeltaSerialize()`는 `UAbilitySystemComponent::HandleDeferredGameplayCues()`를 호출하여 `OnActive` 및 `WhileActive`를 호출합니다. `FACiveGameplayEffectsContainer::RemoveActiveGameplayEffectGrantedTagsAndModifiers()`는 `OnRemoved`를 호출합니다.
+* 시뮬레이션된 프록시는 'WhileActive' 및 'OnRemove'를 안정적으로 수신합니다.
+`UAbilitySystemComponent::MinimalReplicationGameplayCues`의 복제는 `WhileActive` 및 `OnRemove`를 호출합니다. 'OnActive' 이벤트가 신뢰할 수 없는 멀티캐스트에 의해 호출되었습니다.
+
+
 **`GameplayCues` applied without a `GameplayEffect`:**
 * Autonomous proxy reliably receives `OnRemove`  
 The `OnActive` and `WhileActive` events are called by an unreliable multicast.
 * Simulated proxies reliably receive `WhileActive` and `OnRemove`  
 `UAbilitySystemComponent::MinimalReplicationGameplayCues`'s replication calls `WhileActive` and `OnRemove`. The `OnActive` event is called by an unreliable multicast.
 
+**`GameplayEffect` 없이 적용된 `GameplayCues`:**
+* 자율 프록시는 'OnRemove'를 안정적으로 수신합니다.
+'OnActive' 및 'WhileActive' 이벤트는 신뢰할 수 없는 멀티캐스트에 의해 호출됩니다.
+* 시뮬레이션된 프록시는 'WhileActive' 및 'OnRemove'를 안정적으로 수신합니다.
+`UAbilitySystemComponent::MinimalReplicationGameplayCues`의 복제는 `WhileActive` 및 `OnRemove`를 호출합니다. 'OnActive' 이벤트가 신뢰할 수 없는 멀티캐스트에 의해 호출되었습니다.
+
+
 If you need something in a `GameplayCue` to be 'reliable', then apply it from a `GameplayEffect` and use `WhileActive` to add the FX and `OnRemove` to remove the FX.
+
+`GameplayCue`에서 '신뢰할 수 있는' 것이 필요한 경우 `GameplayEffect`에서 적용하고 `WhileActive`를 사용하여 FX를 추가하고 `OnRemove`를 사용하여 FX를 제거합니다.
 
 **[⬆ Back to Top](#table-of-contents)**
 
@@ -3127,7 +3295,10 @@ If you need something in a `GameplayCue` to be 'reliable', then apply it from a 
 ### 4.9 Ability System Globals
 The [`AbilitySystemGlobals`](https://docs.unrealengine.com/en-US/API/Plugins/GameplayAbilities/UAbilitySystemGlobals/index.html) class holds global information about GAS. Most of the variables can be set from the `DefaultGame.ini`. Generally you won't have to interact with this class, but you should be aware of its existence. If you need to subclass things like the [`GameplayCueManager`](#concepts-gc-manager) or the [`GameplayEffectContext`](#concepts-ge-context), you have to do that through the `AbilitySystemGlobals`.
 
+'AbilitySystemGlobals' 클래스는 GAS에 대한 전역 정보를 보유합니다. 대부분의 변수는 'DefaultGame.ini'에서 설정할 수 있습니다. 일반적으로 이 클래스와 상호 작용할 필요는 없지만 그 존재를 알고 있어야 합니다. 'GameplayCueManager'와 같은 것을 서브클래스화해야 하는 경우 'AbilitySystemGlobals'를 통해 이를 수행해야 합니다.
+
 To subclass `AbilitySystemGlobals`, set the class name in the `DefaultGame.ini`:
+`AbilitySystemGlobals`를 하위 클래스로 지정하려면 `DefaultGame.ini`에서 클래스 이름을 설정합니다.:
 ```
 [/Script/GameplayAbilities.AbilitySystemGlobals]
 AbilitySystemGlobalsClassName="/Script/ParagonAssets.PAAbilitySystemGlobals"
@@ -3137,7 +3308,11 @@ AbilitySystemGlobalsClassName="/Script/ParagonAssets.PAAbilitySystemGlobals"
 #### 4.9.1 InitGlobalData()
 Starting in UE 4.24, it is now necessary to call `UAbilitySystemGlobals::Get().InitGlobalData()` to use [`TargetData`](#concepts-targeting-data), otherwise you will get errors related to `ScriptStructCache` and clients will be disconnected from the server. This function only needs to be called once in a project. Fortnite calls it from `UAssetManager::StartInitialLoading()` and Paragon called it from `UEngine::Init()`. I find that putting it in `UAssetManager::StartInitialLoading()` is a good place as shown in the Sample Project. I would consider this boilerplate code that you should copy into your project to avoid issues with `TargetData`.
 
+UE 4.24 부터는 `TargetData`를 사용하기 위해 `UAbilitySystemGlobals::Get().InitGlobalData()`를 호출해야 합니다. 샘플 프로젝트에서 볼 수 있듯이 좋은 곳입니다. 'TargetData' 문제를 피하기 위해 프로젝트에 복사해야 하는 이 상용구 코드를 고려할 것입니다.
+
 If you run into a crash while using the `AbilitySystemGlobals` `GlobalAttributeSetDefaultsTableNames`, you may need to call `UAbilitySystemGlobals::Get().InitGlobalData()` later like Fortnite in the `AssetManager` or in the `GameInstance`.
+
+`AbilitySystemGlobals` `GlobalAttributeSetDefaultsTableNames`를 사용하는 동안 충돌이 발생하면 나중에 `AssetManager` 또는 `GameInstance`에서 Fortnite처럼 `UAbilitySystemGlobals::Get().InitGlobalData()`를 호출해야 할 수도 있습니다.
 
 **[⬆ Back to Top](#table-of-contents)**
 
@@ -3145,11 +3320,19 @@ If you run into a crash while using the `AbilitySystemGlobals` `GlobalAttributeS
 ### 4.10 Prediction
 GAS comes out of the box with support for client-side prediction; however, it does not predict everything. Client-side prediction in GAS means that the client does not have to wait for the server's permission to activate a `GameplayAbility` and apply `GameplayEffects`. It can "predict" the server giving it permission to do this and predict the targets that it would apply `GameplayEffects` to. The server then runs the `GameplayAbility` network latency-time after the client activates and tells the client if he was correct or not in his predictions. If the client was wrong in any of his predictions, he will "roll back" his changes from his "mispredictions" to match the server.
 
+GAS는 클라이언트 측 예측을 지원하는 즉시 사용 가능합니다. 그러나 모든 것을 예측하지는 않습니다. GAS의 클라이언트 측 예측은 클라이언트가 'GameplayAbility'를 활성화하고 'GameplayEffects'를 적용하기 위해 서버의 권한을 기다릴 필요가 없음을 의미합니다. 이 작업을 수행할 수 있는 권한을 부여하는 서버를 "예측"하고 `GameplayEffects`를 적용할 대상을 예측할 수 있습니다. 그런 다음 서버는 클라이언트가 활성화된 후 'GameplayAbility' 네트워크 대기 시간을 실행하고 클라이언트가 예측에서 맞았는지 아닌지 알려줍니다. 클라이언트가 그의 예측 중 하나라도 틀렸다면, 그는 서버와 일치시키기 위해 자신의 "잘못 예측"에서 변경 사항을 "롤백"할 것입니다.
+
 The definitive source for GAS-related prediction is `GameplayPrediction.h` in the plugin source code.
+
+GAS 관련 예측의 최종 소스는 플러그인 소스 코드의 'GameplayPrediction.h'입니다.
 
 Epic's mindset is to only predict what you "can get away with". For example, Paragon and Fortnite do not predict damage. Most likely they use [`ExecutionCalculations`](#concepts-ge-ec) for their damage which cannot be predicted anyway. This is not to say that you can't try to predict certain things like damage. By all means if you do it and it works well for you then that's great.
 
+Epic의 사고 방식은 "도망가질 수 있는 것"만 예측하는 것입니다. 예를 들어 Paragon과 Fortnite는 피해를 예측하지 않습니다. 그들은 어쨌든 예측할 수 없는 피해를 위해 'ExecutionCalculations'를 사용했을 가능성이 큽니다. 이것은 손상과 같은 특정 사항을 예측할 수 없다는 말은 아닙니다. 어쨌든 당신이 그것을하고 그것이 당신을 위해 잘 작동한다면 그것은 훌륭합니다.
+
 > ... we are also not all in on a "predict everything: seamlessly and automatically" solution. We still feel player prediction is best kept to a minimum (meaning: predict the minimum amount of stuff you can get away with).
+
+> ... 또한 "모든 것을 완벽하게 자동으로 예측"하는 솔루션에 모두 참여하지 않습니다. 우리는 여전히 플레이어 예측이 최소한으로 유지되는 것이 가장 좋다고 생각합니다(즉, 피할 수 있는 최소한의 양을 예측).
 
 *Dave Ratti from Epic's comment from the new [Network Prediction Plugin](#concepts-p-npp)*
 
@@ -3169,13 +3352,43 @@ Epic's mindset is to only predict what you "can get away with". For example, Par
 
 *From `GameplayPrediction.h`*
 
+*새로운 네트워크 예측 플러그인에 대한 에픽의 댓글 Dave Ratti*
+
+**예상되는 내용:**
+> * 능력 활성화
+> *	트리거된 이벤트
+> *	GameplayEffect 응용 프로그램:
+> * 속성 수정(예외: 실행은 현재 예측하지 않고 속성 수정자만)
+> * GameplayTag 수정
+> * 게임 플레이 큐 이벤트(예측 게임 플레이 효과 내에서 및 자체적으로 모두)
+> * 몽타주
+> * 움직임 (UE5 UCharacterMovement에 내장)
+
+**예상되지 않은 사항:**
+> * GameplayEffect 제거
+> * GameplayEffect 주기적인 효과(점 똑딱거림)
+
+*'GameplayPrediction.h'에서 제공*
+
+
+
+
 While we can predict `GameplayEffect` application, we cannot predict `GameplayEffect` removal. One way that we can work around this limitation is to predict the inverse effect when we want to remove a `GameplayEffect`. Say we predict a movement speed slow of 40%. We can predictively remove it by applying a movement speed buff of 40%. Then remove both `GameplayEffects` at the same time. This is not appropriate for every scenario and support for predicting `GameplayEffect` removal is still needed. Dave Ratti from Epic has expressed desire to add it to a [future iteration of GAS](https://epicgames.ent.box.com/s/m1egifkxv3he3u3xezb9hzbgroxyhx89).
+
+'GameplayEffect' 애플리케이션은 예측할 수 있지만 'GameplayEffect' 제거는 예측할 수 없습니다. 이 제한을 해결할 수 있는 한 가지 방법은 'GameplayEffect'를 제거하려고 할 때 역효과를 예측하는 것입니다. 이동 속도가 40% 느려질 것으로 예측한다고 가정해 보겠습니다. 40%의 이동 속도 버프를 적용하여 예측적으로 제거할 수 있습니다. 그런 다음 두 'GameplayEffects'를 동시에 제거합니다. 이는 모든 시나리오에 적합하지 않으며 'GameplayEffect' 제거 예측에 대한 지원이 여전히 필요합니다. Epic의 Dave Ratti는 GAS의 향후 버전에 이를 추가하고 싶다고 밝혔습니다.
 
 Because we cannot predict the removal of `GameplayEffects`, we cannot fully predict `GameplayAbility` cooldowns and there is no inverse `GameplayEffect` workaround for them. The server's replicated `Cooldown GE` will exist on the client and any attempts to bypass this (with `Minimal` replication mode for example) will be rejected by the server. This means clients with higher latencies take longer to tell the server to go on cooldown and to receive the removal of the server's `Cooldown GE`. This means players with higher latencies will have a lower rate of fire than players with lower latencies, giving them a disadvantage against lower latency players. Fortnite avoids this issue by using custom bookkeeping instead of `Cooldown GEs`.
 
+'GameplayEffects'의 제거를 예측할 수 없기 때문에 'GameplayAbility' 쿨다운을 완전히 예측할 수 없으며 이에 대한 역 'GameplayEffect' 해결 방법도 없습니다. 서버의 복제된 '쿨다운 GE'가 클라이언트에 존재하며 이를 우회하려는 모든 시도(예: '최소' 복제 모드 사용)는 서버에서 거부됩니다. 이는 대기 시간이 더 긴 클라이언트가 서버에 쿨다운을 시작하고 서버의 '쿨다운 GE' 제거를 수신하도록 지시하는 데 더 오래 걸린다는 것을 의미합니다. 즉, 지연 시간이 긴 플레이어는 지연 시간이 짧은 플레이어보다 발사 속도가 낮아 지연 시간이 짧은 플레이어에게 불리합니다. Fortnite는 `Cooldown GEs` 대신 사용자 지정 부기를 사용하여 이 문제를 방지합니다.
+
+
 Regarding predicting damage, I personally do not recommend it despite it being one of the first things that most people try when starting with GAS. I especially do not recommend trying to predict death. While you can predict damage, doing so is tricky. If you mispredict applying damage, the player will see the enemy's health jump back up. This can be especially awkward and frustrating if you try to predict death. Say you mispredict a `Character's` death and it starts ragdolling only to stop ragdolling and continue shooting at you when the server corrects it.
 
+피해 예측에 관해서는 대부분의 사람들이 GAS를 시작할 때 가장 먼저 시도하는 것 중 하나임에도 불구하고 개인적으로 권장하지 않습니다. 나는 특히 죽음을 예측하려고 시도하지 않는 것이 좋습니다. 피해를 예측할 수는 있지만 그렇게 하는 것은 까다롭습니다. 피해 적용을 잘못 예측하면 플레이어는 적의 체력이 다시 상승하는 것을 볼 수 있습니다. 죽음을 예측하려고 하면 특히 어색하고 답답할 수 있습니다. '캐릭터'의 죽음을 잘못 예측했는데 서버가 수정하면 래그돌링을 멈추고 계속해서 당신에게 총을 쏘기 위해 랙돌링을 시작한다고 가정해 보겠습니다.
+
 **Note:** `Instant`	`GameplayEffects` (like `Cost GEs`) that change `Attributes` can be predicted on yourself seamlessly, predicting `Instant` `Attribute` changes to other characters will show a brief anomaly or "blip" in their `Attributes`. Predicted `Instant` `GameplayEffects` are actually treated like `Infinite` `GameplayEffects` so that they can be rolled back if mispredicted. When the server's `GameplayEffect` is applied, there potentially exists two of the same `GameplayEffect's` causing the `Modifier` to be applied twice or not at all for a brief moment. It will eventually correct itself but sometimes the blip is noticeable to players.
+
+**참고:** `인스턴트`	'속성'을 변경하는 'GameplayEffects'(예: '비용 GE')는 자신에 대해 원활하게 예측할 수 있습니다.'속성'에 간단한 이상 또는 "점점"을 표시합니다. 예측된 `Instant` `GameplayEffects`는 실제로 `Infinite` `GameplayEffects`로 처리되어 잘못 예측된 경우 롤백할 수 있습니다. 서버의 'GameplayEffect'가 적용될 때, 잠재적으로 동일한 'GameplayEffect'가 2개 존재하여 'Modifier'가 두 번 적용되거나 잠시 동안 전혀 적용되지 않을 수 있습니다. 결국 자체적으로 수정되지만 때때로 플레이어에게 오류가 눈에 띄게 됩니다.
 
 Problems that GAS's prediction implementation is trying to solve:
 > 1. "Can I do this?" Basic protocol for prediction.
@@ -3184,6 +3397,15 @@ Problems that GAS's prediction implementation is trying to solve:
 > 4. "Completeness" How to be sure we /really/ predicted all side effects.
 > 5. "Dependencies" How to manage dependent prediction and chains of predicted events.
 > 6. "Override" How to override state predictively that is otherwise replicated/owned by the server.
+
+GAS의 예측 구현이 해결하려는 문제:
+> 1. "이걸 해도 될까요?" 예측을 위한 기본 프로토콜.
+> 2. "실행 취소" 예측 실패 시 부작용을 실행 취소하는 방법입니다.
+> 3. "다시 실행" 로컬에서 예측했지만 서버에서도 복제되는 부작용을 다시 재생하지 않는 방법.
+> 4. "완전성" 모든 부작용을 /실제로/예측했는지 확인하는 방법.
+> 5. "종속성" 종속 예측 및 예측 이벤트 체인을 관리하는 방법.
+> 6. "Override" 서버가 복제/소유하는 상태를 예측적으로 재정의하는 방법.
+
 
 *From `GameplayPrediction.h`*
 
@@ -3208,7 +3430,28 @@ GAS's prediction works on the concept of a `Prediction Key` which is an integer 
 * Client receives the prediction key back from the server. This is the `Replicated Prediction Key`. This prediction key is now marked stale.
 * Client removes **all** `GameplayEffects` that it created with the now stale replicated prediction key. `GameplayEffects` replicated by the server will persist. Any `GameplayEffects` that the client added and didn't receive a matching replicated version from the server were mispredicted.
 
+
+GAS의 예측은 클라이언트가 'GameplayAbility'를 활성화할 때 생성하는 정수 식별자인 '예측 키'의 개념에서 작동합니다.
+
+* 클라이언트는 'GameplayAbility'를 활성화할 때 예측 키를 생성합니다. '활성화 예측 키'입니다.
+* 클라이언트는 'CallServerTryActivateAbility()'를 사용하여 이 예측 키를 서버에 보냅니다.
+* 클라이언트는 예측 키가 유효한 동안 적용되는 모든 'GameplayEffects'에 이 예측 키를 추가합니다.
+* 클라이언트의 예측 키는 범위를 벗어납니다. 동일한 'GameplayAbility'의 추가 예측 효과에는 새로운 범위 예측 창이 필요합니다.
+
+
+* 서버는 클라이언트로부터 예측 키를 받습니다.
+* 서버는 이 예측 키를 적용하는 모든 'GameplayEffects'에 추가합니다.
+* 서버는 예측 키를 클라이언트에 다시 복제합니다.
+
+
+* 클라이언트는 서버에서 복제된 'GameplayEffects'를 적용하는 데 사용된 예측 키와 함께 받습니다. 복제된 'GameplayEffects' 중 클라이언트가 동일한 예측 키로 적용한 'GameplayEffects'와 일치하는 것이 있으면 올바르게 예측된 것입니다. 클라이언트가 예측한 것을 제거할 때까지 대상에 일시적으로 두 개의 'GameplayEffect' 복사본이 있습니다.
+* 클라이언트는 서버로부터 예측 키를 다시 받습니다. '복제된 예측 키'입니다. 이 예측 키는 이제 오래된 것으로 표시됩니다.
+* 클라이언트는 이제 부실한 복제 예측 키로 생성한 **모든** `GameplayEffects`를 제거합니다. 서버에 의해 복제된 `GameplayEffects`는 지속됩니다. 클라이언트가 추가했지만 서버에서 일치하는 복제 버전을 받지 못한 모든 'GameplayEffects'가 잘못 예측되었습니다.
+
+
 Prediction keys are guaranteed to be valid during an atomic grouping of instructions "window" in `GameplayAbilities` starting with `Activation` from the activation prediction key. You can think of this as being only valid during one frame. Any callbacks from latent action `AbilityTasks` will no longer have a valid prediction key unless the `AbilityTask` has a built-in Synch Point which generates a new [Scoped Prediction Window](#concepts-p-windows).
+
+예측 키는 활성화 예측 키의 '활성화'로 시작하는 'GameplayAbilities'의 명령어 "창"을 원자적으로 그룹화하는 동안 유효하도록 보장됩니다. 이것은 한 프레임 동안만 유효하다고 생각할 수 있습니다. 잠재 작업 'AbilityTasks'의 모든 콜백은 'AbilityTask'에 새 범위 예측 창을 생성하는 내장 동기화 포인트가 없는 한 더 이상 유효한 예측 키를 갖지 않습니다.
 
 **[⬆ Back to Top](#table-of-contents)**
 
@@ -3216,15 +3459,28 @@ Prediction keys are guaranteed to be valid during an atomic grouping of instruct
 #### 4.10.2 Creating New Prediction Windows in Abilities
 To predict more actions in callbacks from `AbilityTasks`, we need to create a new Scoped Prediction Window with a new Scoped Prediction Key. This is sometimes referred to as a Synch Point between the client and server. Some `AbilityTasks` like all of the input related ones come with built-in functionality to create a new scoped prediction window, meaning atomic code in the `AbilityTasks'` callbacks have a valid scoped prediction key to use. Other tasks like the `WaitDelay` task do not have built-in code to create a new scoped prediction window for its callback. If you need to predict actions after an `AbilityTask` that does not have built-in code to create a scoped prediction window like `WaitDelay`, we must manually do that using the `WaitNetSync` `AbilityTask` with the option `OnlyServerWait`. When the client hits a `WaitNetSync` with `OnlyServerWait`, it generates a new scoped prediction key based on the `GameplayAbility's` activation prediction key, RPCs it to the server, and adds it to any new `GameplayEffects` that it applies. When the server hits a `WaitNetSync` with `OnlyServerWait`, it waits until it receives the new scoped prediction key from the client before continuing. This scoped prediction key does the same dance as activation prediction keys - applied to `GameplayEffects` and replicated back to clients to be marked stale. The scoped prediction key is valid until it falls out of scope, meaning the scoped prediction window has closed. So again, only atomic operations, nothing latent, can use the new scoped prediction key.
 
+'AbilityTasks'의 콜백에서 더 많은 작업을 예측하려면 새 범위 예측 키로 새 범위 예측 창을 만들어야 합니다. 이것은 때때로 클라이언트와 서버 간의 동기화 지점이라고 합니다. 모든 입력 관련 항목과 같은 일부 'AbilityTasks'에는 새로운 범위의 예측 창을 생성하는 기능이 내장되어 있습니다. 이는 'AbilityTasks' 콜백의 원자 코드에 사용할 유효한 범위의 예측 키가 있음을 의미합니다. 'WaitDelay' 작업과 같은 다른 작업에는 콜백에 대한 새 범위 예측 창을 만드는 내장 코드가 없습니다. 'WaitDelay'와 같은 범위가 지정된 예측 창을 생성하기 위해 내장 코드가 없는 'AbilityTask' 이후에 작업을 예측해야 하는 경우, 'OnlyServerWait' 옵션과 함께 'WaitNetSync' 'AbilityTask'를 사용하여 수동으로 수행해야 합니다. 클라이언트가 'OnlyServerWait'를 사용하여 'WaitNetSync'에 도달하면 'GameplayAbility' 활성화 예측 키를 기반으로 새로운 범위의 예측 키를 생성하고, 이를 서버에 RPC하고, 적용하는 새 'GameplayEffects'에 추가합니다. 서버가 'OnlyServerWait'로 'WaitNetSync'에 도달하면 계속하기 전에 클라이언트로부터 새로운 범위의 예측 키를 받을 때까지 기다립니다. 이 범위가 지정된 예측 키는 활성화 예측 키와 동일한 춤을 추며 'GameplayEffects'에 적용되고 클라이언트에 다시 복제되어 오래된 것으로 표시됩니다. 범위가 지정된 예측 키는 범위를 벗어날 때까지 유효합니다. 즉, 범위가 지정된 예측 창이 닫힙니다. 다시 말하지만, 잠재성이 없는 원자적 연산만 새로운 범위의 예측 키를 사용할 수 있습니다.
+
+
 You can create as many scoped prediction windows as you need.
+
+필요한 만큼 범위가 지정된 예측 기간을 만들 수 있습니다.
 
 If you would like to add the synch point functionality to your own custom `AbilityTasks`, look at how the input ones essentially inject the `WaitNetSync` `AbilityTask` code into them.
 
+자신의 커스텀 'AbilityTasks'에 동기화 지점 기능을 추가하려면 입력 항목이 본질적으로 'WaitNetSync' 'AbilityTask' 코드를 입력하는 방법을 살펴보세요.
+
 **Note:** When using `WaitNetSync`, this does block the server's `GameplayAbility` from continuing execution until it hears from the client. This could potentially be abused by malicious users who hack the game and intentionally delay sending their new scoped prediction key. While Epic uses the `WaitNetSync` sparingly, it recommends potentially building a new version of the `AbilityTask` with a delay that automatically continues without the client if this is a concern for you.
+
+**참고:** `WaitNetSync`를 사용할 때 클라이언트에서 들을 때까지 서버의 `GameplayAbility`가 계속 실행되는 것을 차단합니다. 이것은 게임을 해킹하고 의도적으로 새로운 범위의 예측 키 전송을 지연하는 악의적인 사용자에 의해 악용될 수 있습니다. Epic은 'WaitNetSync'를 드물게 사용하지만, 이것이 우려되는 경우 클라이언트 없이 자동으로 계속되는 지연을 사용하여 'AbilityTask'의 새 버전을 잠재적으로 빌드할 것을 권장합니다.
 
 The Sample Project uses `WaitNetSync` in the Sprint `GameplayAbility` to create a new scoped prediction window every time we apply the stamina cost so that we can predict it. Ideally we want a valid prediction key when applying costs and cooldowns.
 
+샘플 프로젝트는 스프린트 'GameplayAbility'의 'WaitNetSync'를 사용하여 예측할 수 있도록 스태미나 비용을 적용할 때마다 새로운 범위의 예측 창을 만듭니다. 이상적으로는 비용과 재사용 대기시간을 적용할 때 유효한 예측 키가 필요합니다.
+
 If you have a predicted `GameplayEffect` that is playing twice on the owning client, your prediction key is stale and you're experiencing the "redo" problem. You can usually solve this by putting a `WaitNetSync` `AbilityTask` with `OnlyServerWait` right before you apply the `GameplayEffect` to create a new scoped prediction key.
+
+소유 클라이언트에서 두 번 재생되는 예측된 'GameplayEffect'가 있는 경우 예측 키가 오래되어 "다시 실행" 문제가 발생합니다. 일반적으로 `GameplayEffect`를 적용하여 새로운 범위의 예측 키를 생성하기 직전에 `WaitNetSync` `AbilityTask`를 `OnlyServerWait`과 함께 넣으면 이 문제를 해결할 수 있습니다.
 
 **[⬆ Back to Top](#table-of-contents)**
 
@@ -3232,7 +3488,11 @@ If you have a predicted `GameplayEffect` that is playing twice on the owning cli
 #### 4.10.3 Predictively Spawning Actors
 Spawning `Actors` predictively on clients is an advanced topic. GAS does not provide functionality to handle this out of the box (the `SpawnActor` `AbilityTask` only spawns the `Actor` on the server). The key concept is to spawn a replicated `Actor` on both the client and the server.
 
+클라이언트에 예측적으로 '액터'를 생성하는 것은 고급 주제입니다. GAS는 이것을 즉시 처리하는 기능을 제공하지 않습니다(`SpawnActor` `AbilityTask`는 서버에서 `Actor`만 생성합니다). 핵심 개념은 클라이언트와 서버 모두에 복제된 '액터'를 생성하는 것입니다.
+
 If the `Actor` is just cosmetic or doesn't serve any gameplay purpose, the simple solution is to override the `Actor's` `IsNetRelevantFor()` function to restrict the server from replicating to the owning client. The owning client would have his locally spawned version and the server and other clients would have the server's replicated version.
+
+'액터'가 단지 장식용이거나 게임플레이 목적을 제공하지 않는 경우 간단한 해결책은 '액터'의 'IsNetRelevantFor()' 함수를 재정의하여 서버가 소유 클라이언트로 복제하는 것을 제한하는 것입니다. 소유 클라이언트는 로컬에서 생성된 버전을 갖고 서버와 다른 클라이언트는 서버의 복제된 버전을 갖게 됩니다.
 ```c++
 bool APAReplicatedActorExceptOwner::IsNetRelevantFor(const AActor * RealViewer, const AActor * ViewTarget, const FVector & SrcLocation) const
 {
@@ -3242,21 +3502,31 @@ bool APAReplicatedActorExceptOwner::IsNetRelevantFor(const AActor * RealViewer, 
 
 If the spawned `Actor` affects gameplay like a projectile that needs to predict damage, then you need advanced logic that is outside of the scope of this documentation. Look at how UnrealTournament predictively spawns projectiles on Epic Games' GitHub. They have a dummy projectile spawned only on the owning client that synchs up with the server's replicated projectile.
 
+생성된 '액터'가 손상을 예측해야 하는 발사체처럼 게임플레이에 영향을 미치는 경우 이 문서의 범위를 벗어나는 고급 로직이 필요합니다. UnrealTournament가 Epic Games의 GitHub에서 어떻게 발사체를 예측적으로 생성하는지 살펴보세요. 그들은 서버의 복제된 발사체와 동기화되는 소유 클라이언트에서만 생성된 더미 발사체가 있습니다.
+
 **[⬆ Back to Top](#table-of-contents)**
 
 <a name="concepts-p-future"></a>
 #### 4.10.4 Future of Prediction in GAS
 `GameplayPrediction.h` states in the future they could potentially add functionality for predicting `GameplayEffect` removal and periodic `GameplayEffects`.
 
+`GameplayPrediction.h`는 향후 `GameplayEffect` 제거 및 주기적인 `GameplayEffects`를 예측하는 기능을 추가할 수 있다고 말합니다.
+
 Dave Ratti from Epic has [expressed interest](https://epicgames.ent.box.com/s/m1egifkxv3he3u3xezb9hzbgroxyhx89) in fixing the `latency reconciliation` problem for predicting cooldowns, disadvantaging players with higher latencies versus players with lower latencies.
 
+Epic의 Dave Ratti는 대기 시간을 예측하는 '대기 시간 조정' 문제를 수정하는 데 관심을 표명하여 대기 시간이 짧은 플레이어에 비해 대기 시간이 긴 플레이어에게 불리합니다.
+
 The new [`Network Prediction` plugin](#concepts-p-npp) by Epic is expected to be fully interoperable with the GAS like the `CharacterMovementComponent` *was* before it.
+
+Epic의 새로운 `Network Prediction` 플러그인은 이전의 `CharacterMovementComponent`와 같이 GAS와 완전히 상호 운용될 것으로 예상됩니다.
 
 **[⬆ Back to Top](#table-of-contents)**
 
 <a name="concepts-p-npp"></a>
 #### 4.10.5 Network Prediction Plugin
 Epic recently started an initiative to replace the `CharacterMovementComponent` with a new `Network Prediction` plugin. This plugin is still in its very early stages but is available to very early access on the Unreal Engine GitHub. It's too soon to tell which future version of the Engine that it will make its experimental beta debut in.
+
+Epic은 최근 `CharacterMovementComponent`를 새로운 `Network Prediction` 플러그인으로 교체하기 위한 계획을 시작했습니다. 이 플러그인은 아직 초기 단계에 있지만 Unreal Engine GitHub에서 매우 조기에 액세스할 수 있습니다. 어떤 엔진의 미래 버전이 실험적 베타 데뷔를 할 것인지 말하기는 너무 이릅니다.
 
 **[⬆ Back to Top](#table-of-contents)**
 
@@ -3267,9 +3537,15 @@ Epic recently started an initiative to replace the `CharacterMovementComponent` 
 #### 4.11.1 Target Data
 [`FGameplayAbilityTargetData`](https://docs.unrealengine.com/en-US/API/Plugins/GameplayAbilities/Abilities/FGameplayAbilityTargetData/index.html) is a generic structure for targeting data meant to be passed across the network. `TargetData` will typically hold `AActor`/`UObject` references, `FHitResults`, and other generic location/direction/origin information. However, you can subclass it to put essentially anything that you want inside of them as a simple means to [pass data between the client and server in `GameplayAbilities`](#concepts-ga-data). The base struct `FGameplayAbilityTargetData` is not meant to be used directly but instead subclassed. `GAS` comes with a few subclassed `FGameplayAbilityTargetData` structs out of the box located in `GameplayAbilityTargetTypes.h`.
 
+'FGameplayAbilityTargetData'는 네트워크를 통해 전달되는 대상 데이터를 위한 일반 구조입니다. `TargetData`는 일반적으로 `AActor`/`UObject` 참조, `FHitResults` 및 기타 일반 위치/방향/원점 정보를 보유합니다. 그러나 'GameplayAbilities'에서 클라이언트와 서버 간에 데이터를 전달하는 간단한 수단으로 기본적으로 원하는 모든 것을 내부에 넣도록 하위 클래스화할 수 있습니다. 기본 구조체 'FGameplayAbilityTargetData'는 직접 사용하기 위한 것이 아니라 서브클래싱된 것입니다. `GAS`는 `GameplayAbilityTargetTypes.h`에 있는 몇 가지 서브클래싱된 `FGameplayAbilityTargetData` 구조체와 함께 제공됩니다.
+
 `TargetData` is typically produced by [`Target Actors`](#concepts-targeting-actors) or **created manually** and consumed by [`AbilityTasks`](#concepts-at) and [`GameplayEffects`](#concepts-ge) via the [`EffectContext`](#concepts-ge-context). As a result of being in the `EffectContext`, [`Executions`](#concepts-ge-ec), [`MMCs`](#concepts-ge-mmc), [`GameplayCues`](#concepts-gc), and the functions on the backend of the [`AttributeSet`](#concepts-as) can access the `TargetData`.
 
+'TargetData'는 일반적으로 'Target Actors'에 의해 생성되며 'TargetData'에 액세스할 수 있습니다.
+
 We don't typically pass around the `FGameplayAbilityTargetData` directly, instead we use a [`FGameplayAbilityTargetDataHandle`](https://docs.unrealengine.com/en-US/API/Plugins/GameplayAbilities/Abilities/FGameplayAbilityTargetDataHandle/index.html) which has an internal TArray of pointers to `FGameplayAbilityTargetData`. This intermediate struct provides support for polymorphism of the `TargetData`.
+
+일반적으로 `FGameplayAbilityTargetData`를 직접 전달하지 않고 대신 `FGameplayAbilityTargetData`에 대한 포인터의 내부 TArray가 있는 `FGameplayAbilityTargetDataHandle`을 사용합니다. 이 중간 구조체는 `TargetData`의 다형성을 지원합니다.
 
 **[⬆ Back to Top](#table-of-contents)**
 
@@ -3277,9 +3553,15 @@ We don't typically pass around the `FGameplayAbilityTargetData` directly, instea
 #### 4.11.2 Target Actors
 `GameplayAbilities` spawn [`TargetActors`](https://docs.unrealengine.com/en-US/API/Plugins/GameplayAbilities/Abilities/AGameplayAbilityTargetActor/index.html) with the `WaitTargetData` `AbilityTask` to visualize and capture targeting information from the world. `TargetActors` may optionally use [`GameplayAbilityWorldReticles`](#concepts-targeting-reticles) to display current targets. Upon confirmation, the targeting information is returned as [`TargetData`](#concepts-targeting-data) which can then be passed into `GameplayEffects`.
  
+ 'GameplayAbilities'는 'WaitTargetData' 'AbilityTask'와 함께 'TargetActors'를 생성하여 세계의 타겟팅 정보를 시각화하고 캡처합니다. 'TargetActors'는 선택적으로 'GameplayAbilityWorldReticles'를 사용하여 'GameplayEffects'에 전달할 수 있습니다.
+ 
 `TargetActors` are based on `AActor` so they can have any kind of visible component to represent **where** and **how** they are targeting such as static meshes or decals. Static meshes may be used to visualize placement of an object that your character will build. Decals may be used to show an area of effect on the ground. The Sample Project uses [`AGameplayAbilityTargetActor_GroundTrace`](https://docs.unrealengine.com/en-US/API/Plugins/GameplayAbilities/Abilities/AGameplayAbilityTargetActor_Grou-/index.html) with a decal on the ground to represent the damage area of effect for the Meteor ability. They also don't need to display anything either. For example it wouldn't make sense to display anything for a hitscan gun that instantly traces a line to its target as used in [GASShooter](https://github.com/tranek/GASShooter).
 
+'TargetActors'는 'AActor'를 기반으로 하므로 정적 메시나 데칼과 같이 대상이 대상인 **위치**와 **방법**을 나타내는 모든 종류의 가시적 구성요소를 가질 수 있습니다. 스태틱 메시는 캐릭터가 만들 개체의 배치를 시각화하는 데 사용할 수 있습니다. 데칼은 지면의 효과 영역을 표시하는 데 사용할 수 있습니다. 샘플 프로젝트는 지면에 데칼이 있는 'AGameplayAbilityTargetActor_GroundTrace'를 사용하여 Meteor 능력의 피해 범위를 나타냅니다. 또한 아무것도 표시할 필요가 없습니다. 예를 들어 GASShooter 에서 사용되는 것처럼 표적에 대한 선을 즉시 추적하는 히트스캔 총에 대해 아무 것도 표시하지 않는 것은 이치에 맞지 않습니다.
+
 They capture targeting information using basic traces or collision overlaps and convert the results as `FHitResults` or `AActor` arrays to `TargetData` depending on the `TargetActor` implementation. The `WaitTargetData` `AbilityTask` determines when the targets are confirmed through its `TEnumAsByte<EGameplayTargetingConfirmation::Type> ConfirmationType` parameter. When **not** using `TEnumAsByte<EGameplayTargetingConfirmation::Type::Instant`, the `TargetActor` typically performs the trace/overlap on `Tick()` and updates its location to the `FHitResult` depending on its implementation. While this performs a trace/overlap on `Tick()`, it's generally not terrible since it's not replicated and you typically don't have more than one (although you could have more) `TargetActor` running at a time. Just be aware that it uses `Tick()` and some complex `TargetActors` might do a lot on it like the rocket launcher's secondary ability in GASShooter. While tracing on `Tick()` is very responsive to the client, you may consider lowering the tick rate on the `TargetActor` if the performance hit is too much. In the case of `TEnumAsByte<EGameplayTargetingConfirmation::Type::Instant`, the `TargetActor` immediately spawns, produces `TargetData`, and destroys. `Tick()` is never called. 
+
+기본 추적 또는 충돌 중첩을 사용하여 타겟팅 정보를 캡처하고 `TargetActor` 구현에 따라 `FHitResults` 또는 `AActor` 배열로 결과를 `TargetData`로 변환합니다. `WaitTargetData` `AbilityTask`는 `TEnumAsByte<EGameplayTargetingConfirmation::Type> ConfirmationType` 매개변수를 통해 대상이 확인되는 시점을 결정합니다. `TEnumAsByte<EGameplayTargetingConfirmation::Type::Instant`를 사용 **하지 않을 때**, `TargetActor`는 일반적으로 `Tick()`에서 추적/중첩을 수행하고 구현에 따라 위치를 `FHitResult`로 업데이트합니다. 이것이 `Tick()`에 대한 추적/중복을 수행하는 동안 일반적으로 복제되지 않고 일반적으로 한 번에 실행되는 `TargetActor`가 두 개 이상(더 많이 가질 수 있지만) 없기 때문에 일반적으로 끔찍하지 않습니다. 그것은 `Tick()`을 사용하고 일부 복잡한 `TargetActors`는 GASShooter에서 로켓 발사기의 보조 능력처럼 많은 일을 할 수 있다는 점에 유의하십시오. `Tick()`에 대한 추적은 클라이언트에 매우 민감하지만 성능 적중이 너무 많은 경우 `TargetActor`의 틱 비율을 낮추는 것을 고려할 수 있습니다. `TEnumAsByte<EGameplayTargetingConfirmation::Type::Instant`의 경우 `TargetActor`가 즉시 생성되어 `TargetData`를 생성하고 소멸합니다. 'Tick()'은 호출되지 않습니다. 
 
 | `EGameplayTargetingConfirmation::Type` | When targets are confirmed                                                                                                                                                                                                                                                                                                                                     |
 | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -3288,13 +3570,29 @@ They capture targeting information using basic traces or collision overlaps and 
 | `Custom`                               | The GameplayTargeting Ability is responsible for deciding when the targeting data is ready by calling `UGameplayAbility::ConfirmTaskByInstanceName()`. The `TargetActor` will also respond to `UGameplayAbility::CancelTaskByInstanceName()` to cancel targeting.                                                                                              |
 | `CustomMulti`                          | The GameplayTargeting Ability is responsible for deciding when the targeting data is ready by calling `UGameplayAbility::ConfirmTaskByInstanceName()`. The `TargetActor` will also respond to `UGameplayAbility::CancelTaskByInstanceName()` to cancel targeting. Should not end the `AbilityTask` upon data production.                                       |
 
+| `EGameplayTargetingConfirmation::Type` | 대상이 확정되면 |
+| -------------------------------------- | -------------------------------------------------- -------------------------------------------------- -------------------------------------------------- -------------------------------------------------- -------------------------------------------------- -------------------------------------------------- -------------------------------------------------- |
+| '인스턴트' | 타겟팅은 '발사' 시점을 결정하는 특별한 논리나 사용자 입력 없이 즉시 발생합니다. |
+| `사용자 확인` | 타겟팅을 취소하는 '확인' 입력에 기능이 바인딩되어 있을 때 사용자가 타겟팅을 확인하면 타겟팅이 발생합니다. |
+| `커스텀` | GameplayTargeting 능력은 `UGameplayAbility::ConfirmTaskByInstanceName()`을 호출하여 타겟팅 데이터가 준비되는 시점을 결정하는 역할을 합니다. 또한 `TargetActor`는 `UGameplayAbility::CancelTaskByInstanceName()`에 응답하여 타겟팅을 취소합니다. |
+| `커스텀멀티` | GameplayTargeting 능력은 `UGameplayAbility::ConfirmTaskByInstanceName()`을 호출하여 타겟팅 데이터가 준비되는 시점을 결정하는 역할을 합니다. 또한 `TargetActor`는 `UGameplayAbility::CancelTaskByInstanceName()`에 응답하여 타겟팅을 취소합니다. 데이터 생성 시 'AbilityTask'를 종료해서는 안 됩니다. |
+
+
 Not every EGameplayTargetingConfirmation::Type is supported by every `TargetActor`. For example, `AGameplayAbilityTargetActor_GroundTrace` does not support `Instant` confirmation.
+
+모든 EGameplayTargetingConfirmation::Type이 모든 `TargetActor`에서 지원되는 것은 아닙니다. 예를 들어 'AGameplayAbilityTargetActor_GroundTrace'는 'Instant' 확인을 지원하지 않습니다.
 
 The `WaitTargetData` `AbilityTask` takes in a `AGameplayAbilityTargetActor` class as a parameter and will spawn an instance on each activation of the `AbilityTask` and will destroy the `TargetActor` when the `AbilityTask` ends. The `WaitTargetDataUsingActor` `AbilityTask` takes in an already spawned `TargetActor`, but still destroys it when the `AbilityTask` ends. Both of these `AbilityTasks` are inefficient in that they either spawn or require a newly spawned `TargetActor` for each use. They're great for prototyping, but in production you might explore optimizing it if you have cases where you are constantly producing `TargetData` like in the case of an automatic rifle. GASShooter has a custom subclass of [`AGameplayAbilityTargetActor`](https://github.com/tranek/GASShooter/blob/master/Source/GASShooter/Public/Characters/Abilities/GSGATA_Trace.h) and a new [`WaitTargetDataWithReusableActor`](https://github.com/tranek/GASShooter/blob/master/Source/GASShooter/Public/Characters/Abilities/AbilityTasks/GSAT_WaitTargetDataUsingActor.h) `AbilityTask` written from scratch that allows you to reuse a `TargetActor` without destroying it.
 
+'WaitTargetData' 'AbilityTask'는 'AGameplayAbilityTargetActor' 클래스를 매개변수로 받아 'AbilityTask'가 활성화될 때마다 인스턴스를 생성하고 'AbilityTask'가 종료되면 'TargetActor'를 소멸시킵니다. `WaitTargetDataUsingActor` `AbilityTask`는 이미 생성된 `TargetActor`를 가져오지만 `AbilityTask`가 종료되면 여전히 파괴합니다. 이 두 'AbilityTasks'는 사용할 때마다 새로 스폰된 'TargetActor'를 생성하거나 필요로 한다는 점에서 비효율적입니다. 프로토타이핑에 적합하지만 자동 소총의 경우와 같이 'TargetData'를 지속적으로 생성하는 경우가 있는 경우 프로덕션 환경에서 최적화를 탐색할 수 있습니다.
+
 `TargetActors` are not replicated by default; however, they can be made to replicate if that makes sense in your game to show other players where the local player is targeting. They do include default functionality to communicate with the server via RPCs on the `WaitTargetData` `AbilityTask`. If the `TargetActor`'s `ShouldProduceTargetDataOnServer` property is set to `false`, then the client will RPC its `TargetData` to the server on confirmation via `CallServerSetReplicatedTargetData()` in `UAbilityTask_WaitTargetData::OnTargetDataReadyCallback()`. If `ShouldProduceTargetDataOnServer` is `true`, the client will send a generic confirm event, `EAbilityGenericReplicatedEvent::GenericConfirm`, RPC to the server in `UAbilityTask_WaitTargetData::OnTargetDataReadyCallback()` and the server will do the trace or overlap check upon receiving the RPC to produce data on the server. If the client cancels the targeting, it will send a generic cancel event, `EAbilityGenericReplicatedEvent::GenericCancel`, RPC to the server in `UAbilityTask_WaitTargetData::OnTargetDataCancelledCallback`. As you can see, there are a lot of delegates on both the `TargetActor` and the `WaitTargetData` `AbilityTask`. The `TargetActor` responds to inputs to produce and broadcast `TargetData` ready, confirm, or cancel delegates. `WaitTargetData` listens to the `TargetActor`'s `TargetData` ready, confirm, and cancel delegates and relays that information back to the `GameplayAbility` and to the server. If you send `TargetData` to the server, you may want to do validation on the server to make sure the `TargetData` looks reasonable to prevent cheating. Producing the `TargetData` directly on the server avoids this issue entirely, but will potentially lead to mispredictions for the owning client.
 
+'TargetActors'는 기본적으로 복제되지 않습니다. 그러나 로컬 플레이어가 타겟팅하는 위치를 다른 플레이어에게 표시하기 위해 게임에서 의미가 있는 경우 복제하도록 만들 수 있습니다. 여기에는 `WaitTargetData` `AbilityTask`의 RPC를 통해 서버와 통신하는 기본 기능이 포함되어 있습니다. `TargetActor`의 `ShouldProduceTargetDataOnServer` 속성이 `false`로 설정되면 클라이언트는 `UAbilityTask_WaitTargetData::OnTargetDataReadyCallback()`의 `CallServerSetReplicatedTargetData()`를 통해 확인 시 서버에 `TargetData`를 RPC합니다. `ShouldProduceTargetDataOnServer`가 `true`이면 클라이언트는 `UAbilityTask_WaitTargetData:: OnTargetDataReadyCallback()` 및 서버는 서버에서 데이터를 생성하기 위해 RPC를 수신할 때 추적 또는 중복 검사를 수행합니다. 클라이언트가 타겟팅을 취소하면 일반 취소 이벤트인 `EAbilityGenericReplicatedEvent::GenericCancel`, RPC를 `UAbilityTask_WaitTargetData::OnTargetDataCancelledCallback`에서 서버로 보냅니다. 보시다시피 'TargetActor'와 'WaitTargetData', 'AbilityTask' 모두에 많은 델리게이트가 있습니다. `TargetActor`는 입력에 응답하여 `TargetData` 준비, 확인 또는 취소 대리자를 생성 및 브로드캐스트합니다. `WaitTargetData`는 `TargetActor`의 `TargetData` 준비, 확인 및 취소를 수신 대기하고 대리자를 확인하고 해당 정보를 다시 `GameplayAbility` 및 서버에 전달합니다. 'TargetData'를 서버에 보내면, 부정 행위를 방지하기 위해 `TargetData`가 합당한지 확인하기 위해 서버에서 유효성 검사를 수행할 수 있습니다. 서버에서 직접 'TargetData'를 생성하면 이 문제를 완전히 피할 수 있지만 잠재적으로 소유 클라이언트에 대한 잘못된 예측으로 이어질 수 있습니다.
+
 Depending on the particular subclass of `AGameplayAbilityTargetActor` that you use, different `ExposeOnSpawn` parameters will be exposed on the `WaitTargetData` `AbilityTask` node. Some common parameters include:
+
+사용하는 `AGameplayAbilityTargetActor`의 특정 서브클래스에 따라 다른 `ExposeOnSpawn` 매개변수가 `WaitTargetData` `AbilityTask` 노드에 노출됩니다. 몇 가지 일반적인 매개변수는 다음과 같습니다.
 
 | Common `TargetActor` Parameters | Definition                                                                                                                                                                                                                                                                                                               |
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -3304,13 +3602,27 @@ Depending on the particular subclass of `AGameplayAbilityTargetActor` that you u
 | Reticle Parameters              | [Optional] Configure your Reticles. See [Reticles](#concepts-targeting-reticles).                                                                                                                                                                                                                                        |
 | Start Location                  | A special struct for where tracing should start from. Typically this will be the player's viewpoint, a weapon muzzle, or the `Pawn`'s location.                                                                                                                                                                          |
 
+| 공통 `TargetActor` 매개변수 | 정의 |
+| ------------------------------- | -------------------------------------------------- -------------------------------------------------- -------------------------------------------------- -------------------------------------------------- -------------------------------------------------- -------------------------------------------------- ------------ |
+| 디버그 | 'true'인 경우 'TargetActor'가 비배송 빌드에서 추적을 수행할 때마다 디버그 추적/중첩 정보를 그립니다. 비`Instant` `TargetActors`는 `Tick()`에서 추적을 수행하므로 이러한 디버그 그리기 호출은 `Tick()`에서도 발생합니다. |
+| 필터 | 선택 사항 추적/중복이 발생할 때 대상에서 '액터'를 필터링(제거)하기 위한 특수 구조체입니다. 일반적인 사용 사례는 플레이어의 '폰'을 필터링하는 것입니다. 대상은 특정 클래스여야 합니다. 고급 사용 사례는 대상 데이터 필터를 참조하세요. |
+| 레티클 클래스 | `TargetActor`가 스폰할 `AGameplayAbilityWorldReticle`의 선택적 서브클래스입니다. |
+| 레티클 매개변수 | 선택 사항 레티클을 구성합니다. 레티클을 참조하십시오. |
+| 시작 위치 | 추적을 시작해야 하는 위치에 대한 특수 구조체입니다. 일반적으로 이것은 플레이어의 시점, 무기 총구 또는 '폰'의 위치입니다. |
+
+
 With the default `TargetActor` classes, `Actors` are only valid targets when they are directly in the trace/overlap. If they leave the trace/overlap (they move or you look away), they are no longer valid. If you want the `TargetActor` to remember the last valid target(s), you will need to add this functionality to a custom `TargetActor` class. I refer to these as persistent targets as they will persist until the `TargetActor` receives confirmation or cancellation, the `TargetActor` finds a new valid target in its trace/overlap, or the target is no longer valid (destroyed). GASShooter uses persistent targets for its rocket launcher's secondary ability's homing rockets targeting.
+
+기본 `TargetActor` 클래스를 사용하면 `Actors`는 추적/중첩에 직접 있을 때만 유효한 대상입니다. 추적/중첩을 떠나면(이동하거나 시선을 돌림) 더 이상 유효하지 않습니다. `TargetActor`가 마지막 유효한 대상을 기억하게 하려면 이 기능을 사용자 정의 `TargetActor` 클래스에 추가해야 합니다. 'TargetActor'가 확인 또는 취소를 수신하거나, 'TargetActor'가 추적/중첩에서 유효한 새 대상을 찾거나, 대상이 더 이상 유효하지 않을 때까지(파괴될 때까지) 지속 대상을 영구 대상이라고 합니다. GASShooter는 로켓 발사기의 보조 능력의 유도 로켓 표적화를 위해 영구 표적을 사용합니다.
 
 **[⬆ Back to Top](#table-of-contents)**
 
 <a name="concepts-target-data-filters"></a>
 #### 4.11.3 Target Data Filters
 Using both the `Make GameplayTargetDataFilter` and `Make Filter Handle` nodes, you can filter out the player's `Pawn` or select only a specific class. If you need more advanced filtering, you can subclass `FGameplayTargetDataFilter` and override the `FilterPassesForActor` function. 
+
+'Make GameplayTargetDataFilter' 및 'Make Filter Handle' 노드를 모두 사용하여 플레이어의 'Pawn'을 필터링하거나 특정 클래스만 선택할 수 있습니다. 더 고급 필터링이 필요한 경우 'FGameplayTargetDataFilter'를 서브클래싱하고 'FilterPassesForActor' 함수를 재정의할 수 있습니다.
+
 ```c++
 USTRUCT(BlueprintType)
 struct GASDOCUMENTATION_API FGDNameTargetDataFilter : public FGameplayTargetDataFilter
@@ -3323,6 +3635,9 @@ struct GASDOCUMENTATION_API FGDNameTargetDataFilter : public FGameplayTargetData
 ```
 
 However, this will not work directly into the `Wait Target Data` node as it requires a `FGameplayTargetDataFilterHandle`. A new custom `Make Filter Handle` must be made to accept the subclass:
+
+그러나 이것은 `FGameplayTargetDataFilterHandle`이 필요하기 때문에 `Wait Target Data` 노드에 직접 작동하지 않습니다. 하위 클래스를 허용하려면 새로운 사용자 정의 'Make Filter Handle'을 만들어야 합니다.
+
 ```c++
 FGameplayTargetDataFilterHandle UGDTargetDataFilterBlueprintLibrary::MakeGDNameFilterHandle(FGDNameTargetDataFilter Filter, AActor* FilterActor)
 {
@@ -3341,10 +3656,19 @@ FGameplayTargetDataFilterHandle UGDTargetDataFilterBlueprintLibrary::MakeGDNameF
 #### 4.11.4 Gameplay Ability World Reticles
 [`AGameplayAbilityWorldReticles`](https://docs.unrealengine.com/en-US/API/Plugins/GameplayAbilities/Abilities/AGameplayAbilityWorldReticle/index.html) (`Reticles`) visualize **who** you are targeting when targeting with non-`Instant` confirmed [`TargetActors`](#concepts-targeting-actors). `TargetActors` are responsible for the spawn and destroy lifetimes for all `Reticles`. `Reticles` are `AActors` so they can use any kind of visual component for representation. A common implementation as seen in [GASShooter](https://github.com/tranek/GASShooter) is to use a `WidgetComponent` to display a UMG Widget in screen space (always facing the player's camera). `Reticles` do not know which `AActor` that they're on, but you could subclass in that functionality on a custom `TargetActor`. `TargetActors` will typically update the `Reticle`'s location to the target's location on every `Tick()`.
 
+`AGameplayAbilityWorldReticles`(`Reticles`)는 `Instant`가 아닌 확인된 `TargetActors`로 타겟팅할 때 타겟팅하는 **누구**를 시각화합니다. 'TargetActors'는 모든 'Reticles'에 대한 스폰 및 소멸 수명을 담당합니다. '레티클'은 'AActor'이므로 표현을 위해 모든 종류의 시각적 구성 요소를 사용할 수 있습니다. GASShooter에서 볼 수 있는 일반적인 구현은 'WidgetComponent'를 사용하여 화면 공간에 UMG 위젯을 표시하는 것입니다(항상 플레이어의 카메라를 향함). '레티클'은 어떤 'AActor'가 켜져 있는지 알지 못하지만 사용자 정의 'TargetActor'에서 해당 기능을 서브클래싱할 수 있습니다. `TargetActors`는 일반적으로 `Tick()`마다 `Reticle`의 위치를 대상의 위치로 업데이트합니다.
+
 GASShooter uses `Reticles` to show locked-on targets for the rocket launcher's secondary ability's homing rockets. The red indicator on the enemy is the `Reticle`. The similar white image is the rocket launcher's crosshair.
+
+GASShooter는 'Reticles'를 사용하여 로켓 발사기의 보조 능력의 유도 로켓에 대해 고정된 목표를 표시합니다. 적의 빨간 표시는 '레티클'입니다. 비슷한 흰색 이미지는 로켓 발사기의 십자선입니다.
+
 ![Reticles in GASShooter](https://github.com/tranek/GASDocumentation/raw/master/Images/gameplayabilityworldreticle.png)
 
+GASShooter는 'Reticles'를 사용하여 로켓 발사기의 보조 능력의 유도 로켓에 대해 고정된 목표를 표시합니다. 적의 빨간 표시는 '레티클'입니다. 비슷한 흰색 이미지는 로켓 발사기의 십자선입니다.
+
 `Reticles` come with a handful of `BlueprintImplementableEvents` for designers (they're intended to be developed in Blueprints):
+
+'레티클'은 디자이너를 위한 소수의 'BlueprintImplementableEvents'와 함께 제공됩니다(블루프린트에서 개발하기 위한 것임):
 
 ```c++
 /** Called whenever bIsTargetValid changes value. */
@@ -3367,9 +3691,15 @@ void SetReticleMaterialParamVector(FName ParamName, FVector value);
 
 `Reticles` can optionally use [`FWorldReticleParameters`](https://docs.unrealengine.com/en-US/API/Plugins/GameplayAbilities/Abilities/FWorldReticleParameters/index.html) provided by the `TargetActor` for configuration. The default struct only provides one variable `FVector AOEScale`. While you can technically subclass this struct, the `TargetActor` will only accept the base struct. It seems a little short-sighted to not allow this to be subclassed with default `TargetActors`. However, if you make your own custom `TargetActor`, you can provide your own custom reticle parameters struct and manually pass it to your subclass of `AGameplayAbilityWorldReticles` when you spawn them.
 
+'레티클'은 구성을 위해 'TargetActor'에서 제공하는 'FWorldReticleParameters'를 선택적으로 사용할 수 있습니다. 기본 구조체는 'FVector AOEScale' 변수 하나만 제공합니다. 기술적으로 이 구조체를 서브클래싱할 수 있지만 `TargetActor`는 기본 구조체만 허용합니다. 이것을 기본 `TargetActors`로 서브클래싱하는 것을 허용하지 않는 것은 약간 근시안적인 것 같습니다. 그러나 사용자 지정 `TargetActor`를 만드는 경우 사용자 지정 레티클 매개변수 구조체를 제공하고 스폰할 때 `AGameplayAbilityWorldReticles`의 하위 클래스에 수동으로 전달할 수 있습니다.
+
 `Reticles` are not replicated by default, but can be made replicated if it makes sense for your game to show other players who the local player is targeting.
 
+'레티클'은 기본적으로 복제되지 않지만 게임에서 로컬 플레이어가 대상으로 하는 다른 플레이어를 표시하는 것이 타당하다면 복제할 수 있습니다.
+
 `Reticles` will only display on the current valid target with the default `TargetActors`. For example, if you're using a `AGameplayAbilityTargetActor_SingleLineTrace` to trace for a target, the `Reticle` will only appear when the enemy is directly in the trace path. If you look away, the enemy is no longer a valid target and the `Reticle` will disappear. If you want the `Reticle` to stay on the last valid target, you will want to customize your `TargetActor` to remember the last valid target and keep the `Reticle` on them. I refer to these as persistent targets as they will persist until the `TargetActor` receives confirmation or cancellation, the `TargetActor` finds a new valid target in its trace/overlap, or the target is no longer valid (destroyed).  GASShooter uses persistent targets for its rocket launcher's secondary ability's homing rockets targeting.
+
+'레티클'은 기본 'TargetActors'를 사용하여 현재 유효한 대상에만 표시됩니다. 예를 들어 `AGameplayAbilityTargetActor_SingleLineTrace`를 사용하여 대상을 추적하는 경우 `Reticle`은 적이 추적 경로에 직접 있을 때만 나타납니다. 시선을 돌리면 적이 더 이상 유효한 대상이 아니며 '레티클'이 사라집니다. '레티클'이 마지막 유효한 타겟에 유지되도록 하려면 'TargetActor'를 사용자 지정하여 마지막 유효한 타겟을 기억하고 '레티클'을 유지해야 합니다. 'TargetActor'가 확인 또는 취소를 수신하거나, 'TargetActor'가 추적/중첩에서 유효한 새 대상을 찾거나, 대상이 더 이상 유효하지 않을 때까지(파괴될 때까지) 지속 대상을 영구 대상이라고 합니다. GASShooter는 로켓 발사기의 보조 능력을 위해 영구 목표물을 사용합니다.
 
 **[⬆ Back to Top](#table-of-contents)**
 
