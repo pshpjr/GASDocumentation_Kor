@@ -1402,7 +1402,8 @@ Designers can choose which abilities a `GameplayEffect` grants, what level to gr
 **[⬆ Back to Top](#table-of-contents)**
 
 <a name="concepts-ge-tags"></a>
-#### 4.5.7 Gameplay Effect Tags
+#### 
+Gameplay Effect Tags
 `GameplayEffects` carry multiple [`GameplayTagContainers`](#concepts-gt). Designers will edit the `Added` and `Removed` `GameplayTagContainers` for each category and the result will show up in the `Combined` `GameplayTagContainer` on compilation. `Added` tags are new tags that this `GameplayEffect` adds that its parents did not previously have. `Removed` tags are tags that parent classes have but this subclass does not have.
 
 `GameplayEffects`는 여러 `GameplayTagContainers`를 전달합니다. 디자이너는 각 카테고리에 대해 `Added` 및 `Removed` `GameplayTagContainers`를 편집하고 결과는 컴파일 시 `Combined` `GameplayTagContainer`에 표시됩니다. 'Added' 태그는 이 'GameplayEffect'가 부모에게 이전에 없었던 새로운 태그입니다. '제거됨' 태그는 상위 클래스에는 있지만 이 하위 클래스에는 없는 태그입니다.
@@ -1416,13 +1417,14 @@ Designers can choose which abilities a `GameplayEffect` grants, what level to gr
 | Remove Gameplay Effects with Tags | `GameplayEffects` on the Target that have any of these tags in their `Asset Tags` or `Granted Tags` will be removed from the Target when this `GameplayEffect` is successfully applied.                                                                                                                                                                                            |
 
 
-| 카테고리 | 설명 |
-| ---------------------------------- | -------------------------------------------------- -------------------------------------------------- -------------------------------------------------- -------------------------------------------------- -------------------------------------------------- -------------------------------------------------- -------------------------------------------------- -------------------- |
-| 게임플레이 효과 자산 태그 | `GameplayEffect`에 있는 태그입니다. 자체적으로 어떤 기능도 수행하지 않으며 'GameplayEffect'를 설명하는 목적으로만 제공됩니다. |
-| 부여된 태그 | 'GameplayEffect'에 있지만 'GameplayEffect'가 적용되는 'ASC'에도 부여되는 태그입니다. `GameplayEffect`가 제거되면 `ASC`에서 제거됩니다. 이것은 'Duration' 및 'Infinite' 'GameplayEffects'에서만 작동합니다. |
-| 지속적인 태그 요구 사항 | 일단 적용되면 이 태그는 'GameplayEffect'가 켜져 있는지 여부를 결정합니다. 'GameplayEffect'는 꺼져 있어도 계속 적용할 수 있습니다. 진행 중인 태그 요구 사항에 실패하여 'GameplayEffect'가 꺼져 있지만 요구 사항이 충족되면 'GameplayEffect'가 다시 켜지고 수정자를 다시 적용합니다. 이것은 'Duration' 및 'Infinite' 'GameplayEffects'에서만 작동합니다. |
-| 애플리케이션 태그 요구 사항 | 대상에 'GameplayEffect'를 적용할 수 있는지 여부를 결정하는 대상의 태그입니다. 이러한 요구 사항이 충족되지 않으면 'GameplayEffect'가 적용되지 않습니다. |
-| 태그로 게임 플레이 효과 제거 | 'Asset Tags' 또는 'Granted Tags'에 이러한 태그가 있는 Target의 'GameplayEffects'는 이 'GameplayEffect'가 성공적으로 적용되면 대상에서 제거됩니다. |
+| 카테고리                          | 설명                                                                                                                                                                                                                                                                                                                                                                        |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Gameplay Effect Asset Tags        | `GameplayEffect`에 있는 태그입니다. 자체적으로 어떤 기능도 수행하지 않으며 'GameplayEffect'를 설명하는 목적으로만 제공됩니다.                                                                                                                                                                                                                                        |
+| Granted Tags                      | 'GameplayEffect'에 있지만 'GameplayEffect'가 적용되는 'ASC'에도 부여되는 태그입니다. `GameplayEffect`가 제거되면 `ASC`에서 제거됩니다. 이것은 'Duration' 및 'Infinite' 'GameplayEffects'에서만 작동합니다.                                                                                                                             |
+| Ongoing Tag Requirements          | 일단 적용되면 이 태그는 'GameplayEffect'가 켜져 있는지 여부를 결정합니다. 'GameplayEffect'는 꺼져 있어도 계속 적용할 수 있습니다. 진행 중인 태그 요구 사항에 실패하여 'GameplayEffect'가 꺼져 있지만 요구 사항이 충족되면 'GameplayEffect'가 다시 켜지고 수정자를 다시 적용합니다. 이것은 'Duration' 및 'Infinite' 'GameplayEffects'에서만 작동합니다. |
+| Application Tag Requirements      | 대상에 'GameplayEffect'를 적용할 수 있는지 여부를 결정하는 대상의 태그입니다. 이러한 요구 사항이 충족되지 않으면 'GameplayEffect'가 적용되지 않습니다.                                                                                                                                                                                                                      |
+| Remove Gameplay Effects with Tags | 'Asset Tags' 또는 'Granted Tags'에 이러한 태그가 있는 Target의 'GameplayEffects'는 이 'GameplayEffect'가 성공적으로 적용되면 대상에서 제거됩니다.                                                                                                                                                                                            |
+
 
 
 **[⬆ Back to Top](#table-of-contents)**
