@@ -233,6 +233,30 @@ Concepts demonstrated:
 * Static `GameplayCues` (FireGun projectile impact particle effect)
 * Actor `GameplayCues` (Sprint and Stun particle effects)
 
+시연된 개념:
+* `PlayerState` 대 `Character`의 `ASC`
+* 복제된 '속성'
+* 복제된 애니메이션 몽타주
+* `게임플레이 태그`
+* `GameplayAbilities` 내부 및 외부에서 `GameplayEffects` 적용 및 제거
+* 캐릭터의 건강을 변경하기 위해 갑옷에 의해 완화된 피해를 적용
+* `GameplayEffectExecutionCalculations`
+* 기절 효과
+* 죽음과 부활
+* 서버의 능력에서 액터(발사체) 생성
+* 조준점 및 전력 질주로 로컬 플레이어의 속도를 예측적으로 변경
+* 스프린트를 위해 지속적으로 스태미나 소모
+* 능력을 시전하기 위해 마나 사용
+* 패시브 능력
+* 'GameplayEffects' 스태킹
+* 대상 배우
+* 블루프린트에서 생성된 `GameplayAbilities`
+* C++에서 생성된 `GameplayAbilities`
+* `Actor` `GameplayAbilities`별로 인스턴스화됨
+* 인스턴스화되지 않은 'GameplayAbilities'(점프)
+* 정적 `GameplayCues`(FireGun 발사체 충격 입자 효과)
+* Actor `GameplayCues`(스프린트 및 스턴 파티클 효과)
+
 hero class는 다음 능력을 가지고 있습니다. :
 
 | Ability                    | Input Bind          | Predicted  | C++ / Blueprint | Description                                                                                                                                                                  |
@@ -303,19 +327,25 @@ The `AbilitySystemComponent` (`ASC`) 가 가장 중요하다. 시스템과 모�
 
 Both, the `OwnerActor` and the `AvatarActor` if different `Actors`, should implement the `IAbilitySystemInterface`. This interface has one function that must be overriden, `UAbilitySystemComponent* GetAbilitySystemComponent() const`, which returns a pointer to its `ASC`. `ASCs` interact with each other internally to the system by looking for this interface function.
 
-(OwnerActor랑 AvatarActor가 다른 경우 IAbilitySystemInterface를 구현해야 함. 얘는 ASC의 포인터를 리턴해야 한다.  아마 ASC가 PlayerState에 있다고 했으니까 OwnerActor를 쓸 때 ASC를 못 찾아서 그런 게 아닐까)
+'OwnerActor'와 'AvatarActor'가 다른 'Actors'인 경우 'IAbilitySystemInterface'를 구현해야 합니다. 이 인터페이스에는 'ASC'에 대한 포인터를 반환하는 'UAbilitySystemComponent* GetAbilitySystemComponent() const'라는 재정의해야 하는 함수가 하나 있습니다. 'ASC'는 이 인터페이스 기능을 찾아 시스템 내부에서 서로 상호 작용합니다.
+
+( 아마 ASC가 PlayerState에 있다고 했으니까 OwnerActor를 쓸 때 ASC를 못 찾아서 그런 게 아닐까)
 
 The `ASC` holds its current active `GameplayEffects` in `FActiveGameplayEffectsContainer ActiveGameplayEffects`.
 
-(이 기나긴 곳에 지금 실행중인 이펙트가 들어있다)
+'ASC'는 'FACiveGameplayEffectsContainer ActiveGameplayEffects'에 현재 활성인 'GameplayEffects'를 보유합니다.
 
 The `ASC` holds its granted `Gameplay Abilities` in `FGameplayAbilitySpecContainer ActivatableAbilities`. Any time that you plan to iterate over `ActivatableAbilities.Items`, be sure to add `ABILITYLIST_SCOPE_LOCK();` above your loop to lock the list from changing (due to removing an ability). Every `ABILITYLIST_SCOPE_LOCK();` in scope increments `AbilityScopeLockCount` and then decrements when it falls out of scope. Do not try to remove an ability inside the scope of `ABILITYLIST_SCOPE_LOCK();` (the clear ability functions check `AbilityScopeLockCount` internally to prevent removing abilities if the list is locked).
+
+'ASC'는 'FGameplayAbilitySpecContainer ActivatableAbilities'에 부여된 'Gameplay Abilities'를 보유합니다. 'ActivatableAbilities.Items'를 반복할 계획이라면 언제든지 루프 위에 'ABILITYLIST_SCOPE_LOCK();'을 추가하여 (능력 제거로 인해) 목록이 변경되지 않도록 잠급니다. 범위의 모든 `ABILITYLIST_SCOPE_LOCK();`은 `AbilityScopeLockCount`를 증가시킨 다음 범위를 벗어날 때 감소합니다. `ABILITYLIST_SCOPE_LOCK();` 범위 내에서 능력을 제거하려고 하지 마십시오(목록이 잠겨 있는 경우 능력 제거를 방지하기 위해 능력 지우기 기능은 내부적으로 `AbilityScopeLockCount`를 확인합니다).
 
 (FGameplayAbilitySpecContainer ActivatableAbilities에 ASC의 Gameplay Abilities가 들어있다. ActivatableAbilities.Items의 능력을 반복 시킬 수 있지만, ABILITYLIST_SCOPE_LOCK();를 꼭 추가해라. Items 내부가 변하지 않도록(변하면 안 되는 듯). 내부적으로 AbilityScopeLockCount변수를 활용해서 락이 걸린 개수를 확인한다. (중첩 락이 가능))
 
 <a name="concepts-asc-rm"></a>
 ### 4.1.1 Replication Mode
 The `ASC` defines three different replication modes for replicating `GameplayEffects`, `GameplayTags`, and `GameplayCues` - `Full`, `Mixed`, and `Minimal`. `Attributes` are replicated by their `AttributeSet`.
+
+'ASC'는 'GameplayEffects', 'GameplayTags' 및 'GameplayCues'를 복제하기 위한 3가지 복제 모드('Full', 'Mixed' 및 'Minimal')를 정의합니다. '속성'은 '속성 집합'에 의해 복제됩니다.
 
 | Replication Mode   | 사용대상                            | Description                                                                                                                    |
 | ------------------ | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
@@ -325,6 +355,8 @@ The `ASC` defines three different replication modes for replicating `GameplayEff
 
 **Note:** `Mixed` replication mode expects the `OwnerActor's` `Owner` to be the `Controller`. `PlayerState's` `Owner` is the `Controller` by default but `Character's` is not. If using `Mixed` replication mode with the `OwnerActor` not the `PlayerState`, then you need to call `SetOwner()` on the `OwnerActor` with a valid `Controller`.
 
+**참고:** `혼합` 복제 모드에서는 `OwnerActor`의 `Owner`가 `Controller`가 될 것으로 예상합니다. `PlayerState`의 `Owner`는 기본적으로 `Controller`이지만 `Character's`는 그렇지 않습니다. `PlayerState`가 아닌 `OwnerActor`와 함께 `Mixed` 복제 모드를 사용하는 경우 유효한 `Controller`로 `OwnerActor`에서 `SetOwner()`를 호출해야 합니다.
+
 (Mixed는 OwnerActor의 Owner가 Controller일 것을 기대. PlayerState의 Owner는 보통 Controller지만 Character는 아니기 때문.플레이어 상태가 아닌 OwnerActor에서 혼합  모드를 사용하는 경우 유효한 컨트롤러가 있는 OwnerActor에서만 SetOwner()를 호출해야 합니다.
 Starting with 4.24, `PossessedBy()` now sets the owner of the `Pawn` to the new `Controller`.
 
@@ -333,6 +365,9 @@ Starting with 4.24, `PossessedBy()` now sets the owner of the `Pawn` to the new 
 <a name="concepts-asc-setup"></a>
 ### 4.1.2 Setup and Initialization
 `ASCs` are typically constructed in the `OwnerActor's` constructor and explicitly marked replicated. **This must be done in C++**.
+
+'ASC'는 일반적으로 'OwnerActor' 생성자에서 생성되며 명시적으로 복제된 것으로 표시됩니다. **이 작업은 C++에서 수행해야 합니다**.
+
 
 (C++로 ASC를 쓰고, replicate 된다고 밝혀야 함. 
 > PlayerState설명
@@ -355,9 +390,13 @@ AGDPlayerState::AGDPlayerState()
 
 The `ASC` needs to be initialized with its `OwnerActor` and `AvatarActor` on both the server and the client. You want to initialize after the `Pawn's` `Controller` has been set (after possession). Single player games only need to worry about the server path.
 
+'ASC'는 서버와 클라이언트 모두에서 'OwnerActor'와 'AvatarActor'로 초기화해야 합니다. (소유 후) `Pawn`의 `Controller`가 설정된 후 초기화하고 싶습니다. 싱글 플레이어 게임은 서버 경로만 걱정하면 됩니다.
+
 (ASC는 서버, 클라 양쪽에서 OwnerActor, AvatarActor로 초기화 되어야 한다.)
 
 For player controlled characters where the `ASC` lives on the `Pawn`, I typically initialize on the server in the `Pawn's` `PossessedBy()` function and initialize on the client in the `PlayerController's` `AcknowledgePossession()` function.
+
+'ASC'가 'Pawn'에 있는 플레이어 제어 캐릭터의 경우 일반적으로 'Pawn'의 'PossessedBy()' 함수로 서버에서 초기화하고 'PlayerController'의 'AcknowledgePossession()' 함수에서 클라이언트에서 초기화합니다.
 
 (ASC가 폰에 있는(플레이어가 조작하는 캐릭터)는 서버에서 Pawn의 PossessedBy() 함수로 초기화하고 클라에서는 PlayerController의 AcknowledgePossession() 함수를 쓴다. [possession이 뭔지 링크](https://docs.unrealengine.com/4.27/ko/InteractiveExperiences/HowTo/PossessPawns/Blueprints/)
 아래 방법은 글 작성자의 권장사항)
@@ -393,6 +432,8 @@ void APAPlayerControllerBase::AcknowledgePossession(APawn* P)
 ```
 
 For player controlled characters where the `ASC` lives on the `PlayerState`, I typically initialize the server in the `Pawn's` `PossessedBy()` function and initialize on the client in the `Pawn's` `OnRep_PlayerState()` function. This ensures that the `PlayerState` exists on the client.
+
+'ASC'가 'PlayerState'에 있는 플레이어 제어 캐릭터의 경우 일반적으로 'Pawn'의 'PossessedBy()' 함수에서 서버를 초기화하고 'Pawn'의 'OnRep_PlayerState()' 함수에서 클라이언트를 초기화합니다. 이렇게 하면 'PlayerState'가 클라이언트에 존재합니다.
 
 (ASC가 PlayerState에 있을 땐 서버에서 Pawn의 PossessedBy() 함수를, 클라에선 Pawn의 OnRep_PlayerState() 함수를 쓴다. 이렇게 하면 PlayerState가 클라에 존재하게 된다. 
 ```c++
@@ -437,7 +478,7 @@ void AGDHeroCharacter::OnRep_PlayerState()
 
 If you get the error message `LogAbilitySystem: Warning: Can't activate LocalOnly or LocalPredicted ability %s when not local!` then you did not initialize your `ASC` on the client.
 
-
+'LogAbilitySystem: Warning: Can't activate LocalOnly or LocalPredicted 능력 %s when not local!' 오류 메시지가 표시되면 클라이언트에서 'ASC'를 초기화하지 않은 것입니다.
 
 **[⬆ Back to Top](#table-of-contents)**
 
@@ -445,20 +486,31 @@ If you get the error message `LogAbilitySystem: Warning: Can't activate LocalOnl
 ### 4.2 Gameplay Tags
 [`FGameplayTags`](https://docs.unrealengine.com/en-US/API/Runtime/GameplayTags/FGameplayTag/index.html) are hierarchical names in the form of `Parent.Child.Grandchild...` that are registered with the `GameplayTagManager`. These tags are incredibly useful for classifying and describing the state of an object. For example, if a character is stunned, we could give it a `State.Debuff.Stun` `GameplayTag` for the duration of the stun.
 
+'FGameplayTags'는 'GameplayTagManager'에 등록된 'Parent.Child.Grandchild...' 형식의 계층적 이름입니다. 이러한 태그는 개체의 상태를 분류하고 설명하는 데 매우 유용합니다. 예를 들어 캐릭터가 기절하면 기절 기간 동안 'State.Debuff.Stun' 'GameplayTag'를 부여할 수 있습니다.
+
 (GameplayTagManager에 태그를 추가할 수 있다. 개층적 구조로 객체의 상태를 묘사하거나 분류하는데 큰 도움이 된다. State.Debuff.Stun이라는 태그는 스턴 상태이며 스턴은 디버프라는 것을 알 수 있다. )
 
 You will find yourself replacing things that you used to handle with booleans or enums with `GameplayTags` and doing boolean logic on whether or not objects have certain `GameplayTags`.
+
+부울 또는 열거형으로 처리하던 것을 `GameplayTags`로 바꾸고 객체에 특정 `GameplayTags`가 있는지 여부에 대해 부울 논리를 수행하는 자신을 발견하게 될 것입니다.
+
 (어떤 객체가 해당 태그를 가지고 있는지 확인도 가능하다)
+
 
 When giving tags to an object, we typically add them to its `ASC` if it has one so that GAS can interact with them. `UAbilitySystemComponent` implements the `IGameplayTagAssetInterface` giving functions to access its owned `GameplayTags`.
 
-(객체에 태그를 부여할 때 ASC가 있을 경우 GAS와 상호작용 할 수 있게 ASC에도 부여한다. UAbilitySystemComponent를 implement 한 IGameplayTagAssetInterface는 GameplayTags에 접근하는 함수를 제공한다. 
+객체에 태그를 부여할 때 일반적으로 GAS가 객체와 상호 작용할 수 있도록 객체에 태그가 있는 경우 'ASC'에 추가합니다. 'UAbilitySystemComponent'는 'IGameplayTagAssetInterface'를 구현하여 소유한 'GameplayTags'에 액세스하는 기능을 제공합니다.
+
 
 Multiple `GameplayTags` can be stored in an `FGameplayTagContainer`. It is preferable to use a `GameplayTagContainer` over a `TArray<FGameplayTag>` since the `GameplayTagContainers` add some efficiency magic. While tags are standard `FNames`, they can be efficiently packed together in `FGameplayTagContainers` for replication if `Fast Replication` is enabled in the project settings. `Fast Replication` requires that the server and the clients have the same list of `GameplayTags`. This generally shouldn't be a problem so you should enable this option. `GameplayTagContainers` can also return a `TArray<FGameplayTag>` for iteration.
+
+여러 개의 `GameplayTag`를 `FGameplayTagContainer`에 저장할 수 있습니다. `GameplayTagContainers`가 효율성 마법을 추가하기 때문에 `TArray<FGameplayTag>`보다 `GameplayTagContainer`를 사용하는 것이 좋습니다. 태그는 표준 'FNames'이지만 프로젝트 설정에서 'Fast Replication'이 활성화되어 있으면 리플리케이션을 위해 'FGameplayTagContainers'에 효율적으로 함께 묶을 수 있습니다. '빠른 복제'를 사용하려면 서버와 클라이언트에 'GameplayTags' 목록이 동일해야 합니다. 이것은 일반적으로 문제가 되지 않으므로 이 옵션을 활성화해야 합니다. `GameplayTagContainers`는 반복을 위해 `TArray<FGameplayTag>`를 반환할 수도 있습니다.
 
 (여러 GameplayTags는 FGameplayTagContainer에 저장된다. 배열 쓰는 것 보다 이게 더 좋다. FGameplayTagContainer를 쓰고 Fast Replication 옵션을 프로젝트 세팅에서 켜라. 이 옵션은 서버와 클라가 같은 GameplayTags를 가질 것을 요구한다. 반복을 위한 TArray도 반환할 수 있다.)
 
 `GameplayTags` stored in `FGameplayTagCountContainer` have a `TagMap` that stores the number of instances of that `GameplayTag`. A `FGameplayTagCountContainer` may still have the `GameplayTag` in it but its `TagMapCount` is zero. You may encounter this while debugging if an `ASC` still has a `GameplayTag`. Any of the `HasTag()` or `HasMatchingTag()` or similar functions will check the `TagMapCount` and return false if the `GameplayTag` is not present or its `TagMapCount` is zero.
+
+'FGameplayTagCountContainer'에 저장된 'GameplayTags'에는 해당 'GameplayTag'의 인스턴스 수를 저장하는 'TagMap'이 있습니다. 'FGameplayTagCountContainer'에는 여전히 'GameplayTag'가 있을 수 있지만 'TagMapCount'는 0입니다. `ASC`에 여전히 `GameplayTag`가 있는 경우 디버깅하는 동안 이 문제가 발생할 수 있습니다. 'HasTag()' 또는 'HasMatchingTag()' 또는 이와 유사한 함수는 'TagMapCount'를 확인하고 'GameplayTag'가 없거나 해당 'TagMapCount'가 0이면 false를 반환합니다.
 
 (FGameplayTagCountContainer에 저장된 태그는 태그맵을 통해 몇 개의 인스턴스가 태그를 가지고 있는지 저장한다. 이걸 바탕으로 HasTag()같은 함수들이 작동한다. 디버깅중 ASC에 
 GameplayTag가 있을 경우 FGameplayTagCountContainer에 GameplayTag가 있는데도 TagMapCount가 0으로 나올 수 있다)
@@ -466,24 +518,26 @@ GameplayTag가 있을 경우 FGameplayTagCountContainer에 GameplayTag가 있는
 
 `GameplayTags` must be defined ahead of time in the `DefaultGameplayTags.ini`. The UE5 Editor provides an interface in the project settings to let developers manage `GameplayTags` without needing to manually edit the `DefaultGameplayTags.ini`. The `GameplayTag` editor can create, rename, search for references, and delete `GameplayTags`.
 
-(프로젝트 설정에서 GameplayTag가 뭐가 있는지 편집기를 제공한다. )
+`GameplayTags`는 `DefaultGameplayTags.ini`에서 미리 정의되어야 합니다. UE5 에디터는 개발자가 'DefaultGameplayTags.ini'를 수동으로 편집할 필요 없이 'GameplayTags'를 관리할 수 있도록 프로젝트 설정에 인터페이스를 제공합니다. `GameplayTag` 편집기는 `GameplayTags`를 생성, 이름 변경, 참조 검색 및 삭제할 수 있습니다.
 
 ![GameplayTag Editor in Project Settings](https://github.com/tranek/GASDocumentation/raw/master/Images/gameplaytageditor.png)
 
 Searching for `GameplayTag` references will bring up the familiar `Reference Viewer` graph in the Editor showing all the assets that reference the `GameplayTag`. This will not however show any C++ classes that reference the `GameplayTag`.
 
-(GameplayTag를 쓰는 C++ 클래스는 레퍼런스 뷰어에 안 나온다. )
+'GameplayTag' 참조를 검색하면 'GameplayTag'를 참조하는 모든 자산을 보여주는 익숙한 'Reference Viewer' 그래프가 에디터에 표시됩니다. 그러나 'GameplayTag'를 참조하는 C++ 클래스는 표시되지 않습니다.
 
 Renaming `GameplayTags` creates a redirect so that assets still referencing the original `GameplayTag` can redirect to the new `GameplayTag`. I prefer if possible to instead create a new `GameplayTag`, update all the references manually to the new `GameplayTag`, and then delete the old `GameplayTag` to avoid creating a redirect.
-(GameplayTags 이름을 바꾸면 알아서 기존 이름에서 새 이름으로 다 바꿔준다)
+
+
+'GameplayTags'의 이름을 바꾸면 여전히 원래 'GameplayTag'를 참조하는 자산이 새 'GameplayTag'로 리디렉션될 수 있도록 리디렉션이 생성됩니다. 대신 가능하면 새 `GameplayTag`를 만들고 모든 참조를 새 `GameplayTag`로 수동으로 업데이트한 다음 이전 `GameplayTag`를 삭제하여 리디렉션 생성을 방지하는 것을 선호합니다.
 
 In addition to `Fast Replication`, the `GameplayTag` editor has an option to fill in commonly replicated `GameplayTags` to optimize them further.
 
-(태그 편집기에는 추가 최적화 옵션이 있다. )
+`빠른 복제` 외에도 `GameplayTag` 편집기에는 일반적으로 복제되는 `GameplayTags`를 채워 추가로 최적화하는 옵션이 있습니다.
 
 `GameplayTags` are replicated if they're added from a `GameplayEffect`. The `ASC` allows you to add `LooseGameplayTags` that are not replicated and must be managed manually. The Sample Project uses a `LooseGameplayTag` for `State.Dead` so that the owning clients can immediately respond to when their health drops to zero. Respawning manually sets the `TagMapCount` back to zero. Only manually adjust the `TagMapCount` when working with `LooseGameplayTags`. It is preferable to use the `UAbilitySystemComponent::AddLooseGameplayTag()` and `UAbilitySystemComponent::RemoveLooseGameplayTag()` functions than manually adjusting the `TagMapCount`.
 
-(GameplayTags는 GameplayEffect에 추가되었을 경우 replicated된다. LooseGameplayTags는 replicate되지 않는다. 예제에서는 State.Dead를 Loose로 설정해 체력이 0이면 클라에서 바로 죽게 했다(서버 안 거치고 바로). 리스폰되면 TagMapCount는 0이다. LooseGameplayTags는 자동으로 초기화 해 주지 않으니 조심. TagMapCount를 변경하는 것 보다 Tag를 제거 후 추가하는게 더 편하다)
+'GameplayTags'는 'GameplayEffect'에서 추가된 경우 복제됩니다. `ASC`를 사용하면 복제되지 않고 수동으로 관리해야 하는 `LooseGameplayTags`를 추가할 수 있습니다. 샘플 프로젝트는 'State.Dead'에 'LooseGameplayTag'를 사용하므로 소유 클라이언트는 건강이 0으로 떨어질 때 즉시 응답할 수 있습니다. Respawning은 수동으로 `TagMapCount`를 다시 0으로 설정합니다. `LooseGameplayTags`로 작업할 때만 `TagMapCount`를 수동으로 조정하십시오. 'TagMapCount'를 수동으로 조정하는 것보다 'UAbilitySystemComponent::AddLooseGameplayTag()' 및 'UAbilitySystemComponent::RemoveLooseGameplayTag()' 함수를 사용하는 것이 좋습니다.
 
 태그의 레퍼런스 얻기 
 
@@ -494,21 +548,23 @@ FGameplayTag::RequestGameplayTag(FName("Your.GameplayTag.Name"))
 
 For advanced `GameplayTag` manipulation like getting the parent or children `GameplayTags`, look at the functions offered by the `GameplayTagManager`. To access the `GameplayTagManager`, include `GameplayTagManager.h` and call it with `UGameplayTagManager::Get().FunctionName`. The `GameplayTagManager` actually stores the `GameplayTags` as relational nodes (parent, child, etc) for faster processing than constant string manipulation and comparisons.
 
-(어디서든 GameplayTagManager.h를 추가하고 태그 관련 함수를 사용할 수 있다)
+상위 또는 하위 `GameplayTags` 가져오기와 같은 고급 `GameplayTag` 조작의 경우 `GameplayTagManager`에서 제공하는 기능을 살펴보세요. `GameplayTagManager`에 액세스하려면 `GameplayTagManager.h`를 포함하고 `UGameplayTagManager::Get().FunctionName`으로 호출합니다. 'GameplayTagManager'는 실제로 'GameplayTags'를 관계형 노드(부모, 자식 등)로 저장하여 지속적인 문자열 조작 및 비교보다 빠른 처리를 제공합니다.
 
 `GameplayTags` and `GameplayTagContainers` can have the optional `UPROPERTY` specifier `Meta = (Categories = "GameplayCue")` that filters the tags in the Blueprint to show only `GameplayTags` that have the parent tag of `GameplayCue`. This is useful when you know the `GameplayTag` or `GameplayTagContainer` variable should only be used for `GameplayCues`.
 
-(GameplayTags와 GameplayTagContainers는 블루프린트에 있는 특정 GameplayTags(GameplayCue를 부모 태그로 가지는)만 보여주는 UPROPERTY `Meta = (Categories = "GameplayCue")`를 가질 수 있다.)
+`GameplayTags` 및 `GameplayTagContainers`는 선택적 `UPROPERTY` 지정자 `Meta = (Categories = "GameplayCue")`를 가질 수 있으며, 이 지정자는 `GameplayCue`의 상위 태그가 있는 `GameplayTags`만 표시하도록 블루프린트의 태그를 필터링합니다. 이는 `GameplayTag` 또는 `GameplayTagContainer` 변수가 `GameplayCues`에만 사용해야 한다는 것을 알고 있을 때 유용합니다.
 
 Alternatively, there's a separate structure called `FGameplayCueTag` that encapsulates a `FGameplayTag` and also automatically filters `GameplayTags` in Blueprint to only show those tags with the parent tag of `GameplayCue`.
 
-(GameplayCue의 부모 태그들만 표시하는 FGameplayCueTag도 있다. F 접두사는 언리얼과 관련 없는 C++ 관련 구조체, 클래스를 의미한다. )
+또는 'FGameplayTag'를 캡슐화하고 'GameplayCue'의 부모 태그가 있는 태그만 표시하도록 블루프린트에서 'GameplayTags'를 자동으로 필터링하는 'FGameplayCueTag'라는 별도의 구조가 있습니다.
 
 If you want to filter a `GameplayTag` parameter in a function, use the `UFUNCTION` specifier `Meta = (GameplayTagFilter = "GameplayCue")`. `GameplayTagContainer` parameters in functions can not be filtered. If you would like to edit your engine to allow this, look at how `SGameplayTagGraphPin::ParseDefaultValueData()` from `Engine\Plugins\Editor\GameplayTagsEditor\Source\GameplayTagsEditor\Private\SGameplayTagGraphPin.cpp` calls `FilterString = UGameplayTagsManager::Get().GetCategoriesMetaFromField(PinStructType);` and passes `FilterString` to `SGameplayTagWidget` in `SGameplayTagGraphPin::GetListContent()`. The `GameplayTagContainer` version of these functions in `Engine\Plugins\Editor\GameplayTagsEditor\Source\GameplayTagsEditor\Private\SGameplayTagContainerGraphPin.cpp` do not check for the meta field properties and pass along the filter.
  
-(Meta = (GameplayTagFilter = "GameplayCue")인 UFUNCTION을 써서 GameplayTag를 필터링 해라)
+함수에서 `GameplayTag` 매개변수를 필터링하려면 `UFUNCTION` 지정자 `Meta = (GameplayTagFilter = "GameplayCue")`를 사용하세요. 함수의 'GameplayTagContainer' 매개변수는 필터링할 수 없습니다. 이를 허용하도록 엔진을 편집하려면 `Engine\Plugins\Editor\GameplayTagsEditor\Source\GameplayTagsEditor\Private\SGameplayTagGraphPin.cpp`의 `SGameplayTagGraphPin::ParseDefaultValueData()`가 `FilterString = UGameplayTagsManager:: Get().GetCategoriesMetaFromField(PinStructType);` 및 `SGameplayTagGraphPin::GetListContent()`의 `SGameplayTagWidget`에 `FilterString`을 전달합니다. 이 함수의 `GameplayTagContainer` 버전은 `Engine\Plugins\Editor\GameplayTagsEditor\Source\GameplayTagsEditor\Private\SGameplayTagContainerGraphPin`에 있습니다.
 
 The Sample Project extensively uses `GameplayTags`.
+
+샘플 프로젝트는 `GameplayTags`를 광범위하게 사용합니다.
 
 **[⬆ Back to Top](#table-of-contents)**
 
@@ -516,7 +572,7 @@ The Sample Project extensively uses `GameplayTags`.
 ### 4.2.1 Responding to Changes in Gameplay Tags
 The `ASC` provides a delegate for when `GameplayTags` are added or removed. It takes in a `EGameplayTagEventType` that can specify only to fire when the `GameplayTag` is added/removed or for any change in the `GameplayTag's` `TagMapCount`.
 
-(ASC는 태그가 추가, 삭제될 때 호출되는 델리게이트를 제공한다)
+'ASC'는 'GameplayTags'가 추가되거나 제거될 때 대리자를 제공합니다. `GameplayTag`가 추가/제거되거나 `GameplayTag`의 `TagMapCount`가 변경될 때만 실행되도록 지정할 수 있는 `EGameplayTagEventType`을 받습니다.
 
 ```c++
 AbilitySystemComponent->RegisterGameplayTagEvent(FGameplayTag::RequestGameplayTag(FName("State.Debuff.Stun")), EGameplayTagEventType::NewOrRemoved).AddUObject(this, &AGDPlayerState::StunTagChanged);
@@ -538,7 +594,7 @@ virtual void StunTagChanged(const FGameplayTag CallbackTag, int32 NewCount);
 #### 4.3.1 Attribute Definition
 `Attributes` are float values defined by the struct [`FGameplayAttributeData`](https://docs.unrealengine.com/en-US/API/Plugins/GameplayAbilities/FGameplayAttributeData/index.html). These can represent anything from the amount of health a character has to the character's level to the number of charges that a potion has. If it is a gameplay-related numerical value belonging to an `Actor`, you should consider using an `Attribute` for it. `Attributes` should generally only be modified by [`GameplayEffects`](#concepts-ge) so that the ASC can [predict](#concepts-p) the changes.
 
-(Attribute는 FGameplayAttributeData 구조체로 정의된 실수값이다. 액터과 관련된 숫자 값이라면 Attribute 사용을 고려. GameplayEffects를 써서 변경해야 ASC가 예측할 수 있음. 
+'속성'은 'FGameplayAttributeData' 구조체에 의해 정의된 부동 소수점 값입니다. 이는 캐릭터의 체력에서 캐릭터의 레벨, 물약의 충전 횟수까지 무엇이든 나타낼 수 있습니다. '액터'에 속하는 게임플레이 관련 수치라면 '속성'을 사용하는 것을 고려해야 합니다. '속성'은 일반적으로 'GameplayEffects' 변경 사항에 의해서만 수정되어야 합니다. 
 
 `Attributes` are defined by and live in an [`AttributeSet`](#concepts-as). The `AttributeSet` is responsible for replicating `Attributes` that are marked for replication. See the section on [`AttributeSets`](#concepts-as) for how to define `Attributes`.
 
@@ -546,19 +602,26 @@ virtual void StunTagChanged(const FGameplayTag CallbackTag, int32 NewCount);
 
 **Tip:** If you don't want an `Attribute` to show up in the Editor's list of `Attributes`, you can use the `Meta = (HideInDetailsView)` `property specifier`.
 
+**팁:** 편집기의 '속성' 목록에 '속성'이 표시되지 않도록 하려면 '메타 = (HideInDetailsView)' '속성 지정자'를 사용할 수 있습니다.
+
 **[⬆ Back to Top](#table-of-contents)**
 
 <a name="concepts-a-value"></a>
 #### 4.3.2 BaseValue vs CurrentValue
 An `Attribute` is composed of two values - a `BaseValue` and a `CurrentValue`. The `BaseValue` is the permanent value of the `Attribute` whereas the `CurrentValue` is the `BaseValue` plus temporary modifications from `GameplayEffects`. For example, your `Character` may have a movespeed `Attribute` with a `BaseValue` of 600 units/second. Since there are no `GameplayEffects` modifying the movespeed yet, the `CurrentValue` is also 600 u/s. If she gets a temporary 50 u/s movespeed buff, the `BaseValue` stays the same at 600 u/s while the `CurrentValue` is now 600 + 50 for a total of 650 u/s. When the movespeed buff expires, the `CurrentValue` reverts back to the `BaseValue` of 600 u/s.
 
-(Attribute는 BaseValue와 CurrentValue이 있다. BaseValue는 어떤 Attribute 기본 값이고, CurrentValue는 GameplayEffects로인해 BaseValue가 변경된 값이다. 처음에는 BaseValue == CurrentValue이다가 GameplayEffects로 인해 CurrentValue가 임시적으로 변경된다. )
+'속성'은 'BaseValue'와 'CurrentValue'의 두 가지 값으로 구성됩니다. 'BaseValue'는 'Attribute'의 영구 값인 반면, 'CurrentValue'는 'BaseValue'에 'GameplayEffects'의 임시 수정을 더한 것입니다. 예를 들어, `Character`는 `BaseValue`가 600units/second인 movespeed `Attribute`를 가질 수 있습니다. 아직 movespeed를 수정하는 `GameplayEffects`가 없기 때문에 `CurrentValue`도 600u/s입니다. 그녀가 일시적인 50u/s 이동 속도 버프를 받으면 `BaseValue`는 600u/s에서 동일하게 유지되는 반면 `CurrentValue`는 이제 600 + 50이 되어 총 650u/s가 됩니다. movespeed 버프가 만료되면 'CurrentValue'가 600u/s의 'BaseValue'로 되돌아갑니다.
 
 Often beginners to GAS will confuse `BaseValue` with a maximum value for an `Attribute` and try to treat it as such. This is an incorrect approach. Maximum values for `Attributes` that can change or are referenced in abilities or UI should be treated as separate `Attributes`. For hardcoded maximum and minimum values, there is a way to define a `DataTable` with `FAttributeMetaData` that can set maximum and minimum values, but Epic's comment above the struct calls it a "work in progress". See `AttributeSet.h` for more information. To prevent confusion, I recommend that maximum values that can be referenced in abilities or UI be made as separate `Attributes` and hardcoded maximum and minimum values that are only used for clamping `Attributes` be defined as hardcoded floats in the `AttributeSet`. Clamping of `Attributes` is discussed in [PreAttributeChange()](#concepts-as-preattributechange) for changes to the `CurrentValue` and [PostGameplayEffectExecute()](#concepts-as-postgameplayeffectexecute) for changes to the `BaseValue` from `GameplayEffects`.
+
+GAS를 처음 접하는 사람들은 종종 `BaseValue`를 `Attribute`의 최대값과 혼동하여 그렇게 취급하려고 합니다. 이것은 잘못된 접근 방식입니다. 능력이나 UI에서 변경될 수 있거나 참조되는 '속성'의 최대값은 별도의 '속성'으로 처리해야 합니다. 하드코딩된 최대값과 최소값의 경우 최대값과 최소값을 설정할 수 있는 `FAttributeMetaData`로 `DataTable`을 정의하는 방법이 있지만 구조체 위에 있는 Epic의 주석에서는 이를 "작업 진행 중"이라고 부릅니다. 자세한 내용은 `AttributeSet.h`를 참조하세요. 혼동을 방지하기 위해 어빌리티나 UI에서 참조할 수 있는 최대값은 별도의 'Attributes'로 지정하고, 'Attributes' 클램핑에만 사용되는 하드코딩된 최대값과 최소값은 'AttributeSet'에서 하드코딩된 부동 소수점으로 정의하는 것이 좋습니다.
+
 
 (BaseValue를 어떤 Attribute의 최댓값으로 잘못 사용하기도 한다. 최댓값은 또 다른 Attributes 값으로 지정해야 한다. 혼동을 막기 위해 UI, ability에서 참조하는 최대값은 Attribute로 만들고 `클램핑` 하는데만 사용하는 하드코딩된 최대 최소 값은 AttributeSet에 적어라. 클램핑 관련 설명 [PreAttributeChange()](#concepts-as-preattributechange).  `CurrentValue` 바꾸는 얘기는 여기[PostGameplayEffectExecute()](#concepts-as-postgameplayeffectexecute), `BaseValue` 바꾸는 얘기는 PostGameplayEffectExecute()](#concepts-as-postgameplayeffectexecute)) 여기. )
 
 Permanent changes to the `BaseValue` come from `Instant` `GameplayEffects` whereas `Duration` and `Infinite` `GameplayEffects` change the `CurrentValue`. Periodic `GameplayEffects` are treated like instant `GameplayEffects` and change the `BaseValue`.
+
+'BaseValue'에 대한 영구적인 변경은 'Instant' 'GameplayEffects'에서 오는 반면, 'Duration' 및 'Infinite' 'GameplayEffects'는 'CurrentValue'를 변경합니다. 주기적 'GameplayEffects'는 인스턴트 'GameplayEffects'처럼 취급되며 'BaseValue'를 변경합니다.
 
 **[⬆ Back to Top](#table-of-contents)**
 
@@ -566,9 +629,13 @@ Permanent changes to the `BaseValue` come from `Instant` `GameplayEffects` where
 #### 4.3.3 Meta Attributes
 Some `Attributes` are treated as placeholders for temporary values that are intended to interact with `Attributes`. These are called `Meta Attributes`. For example, we commonly define damage as a `Meta Attribute`. Instead of a `GameplayEffect` directly changing our health `Attribute`, we use a `Meta Attribute` called damage as a placeholder. This way the damage value can be modified with buffs and debuffs in an [`GameplayEffectExecutionCalculation`](#concepts-ge-ec) and can be further manipulated in the `AttributeSet`, for example subtracting the damage from a current shield `Attribute`, before finally subtracting the remainder from the health `Attribute`. The damage `Meta Attribute` has no persistence between `GameplayEffects` and is overriden by every one. `Meta Attributes` are not typically replicated.
 
+일부 '속성'은 '속성'과 상호 작용하기 위한 임시 값의 자리 표시자로 처리됩니다. 이를 '메타 속성'이라고 합니다. 예를 들어 우리는 일반적으로 데미지를 '메타 속성'으로 정의합니다. 'GameplayEffect'가 건강 '속성'을 직접 변경하는 대신, 데미지라는 '메타 속성'을 자리 표시자로 사용합니다. 이런 식으로 데미지 값은 `GameplayEffectExecutionCalculation`에서 버프와 디버프로 수정될 수 있고 `AttributeSet`에서 추가로 조작될 수 있습니다. 예를 들어 현재 방패 `Attribute`에서 데미지를 빼고 마지막으로 건강 `에서 나머지를 빼기 전에 조작할 수 있습니다. 속성`. 피해 '메타 속성'은 'GameplayEffects' 간에 지속성이 없으며 모든 것에 의해 재정의됩니다. '메타 속성'은 일반적으로 복제되지 않습니다.
+
 (다른 Attributes를 위한 임시 Attributes도 존재하는데, `Meta Attributes`라 한다. 데미지와 관련된 예시가 있다. 피해를 받을 때는 GameplayEffect를 이용해 체력을 직접 깎기 보다는 데미지라는 변수를 이용하는 것이 좋다. [`GameplayEffectExecutionCalculation`](#concepts-ge-ec) 내부에 있는 버프, 디버프나 AttributeSet 내부에 있는 Attribute에 의해 최종적으로 체력이 깎이는 양은 다를 수 있다. 100의 피해를 받을 때 10%의 피해를 줄이는 장비가 있다면 체력은 90만 줄어들 것이다. `Meta Attributes`는 `GameplayEffects`와 지속적인 관계가 없기에 대부분 replicate 되지 않는다. )
 
 `Meta Attributes` provide a good logical separation for things like damage and healing between "How much damage did we do?" and "What do we do with this damage?". This logical separation means our `Gameplay Effects` and `Execution Calculations` don't need to know how the Target handles the damage. Continuing our damage example, the `Gameplay Effect` determines how much damage and then the `AttributeSet` decides what to do with that damage. Not all characters may have the same `Attributes`, especially if you use subclassed `AttributeSets`. The base `AttributeSet` class may only have a health `Attribute`, but a subclassed `AttributeSet` may add a shield `Attribute`. The subclassed `AttributeSet` with the shield `Attribute` would distribute the damage received differently than the base `AttributeSet` class.
+
+'메타 속성'은 "얼마나 많은 피해를 입혔습니까?" 및 "이 손상으로 무엇을 할 수 있습니까?". 이 논리적 분리는 `Gameplay Effects`와 `Execution Calculations`가 대상이 피해를 처리하는 방법을 알 필요가 없음을 의미합니다. 피해 사례를 계속하면 'Gameplay Effect'가 피해량을 결정한 다음 'AttributeSet'이 해당 피해로 무엇을 할지 결정합니다. 특히 서브클래싱된 'AttributeSets'를 사용하는 경우 모든 문자가 동일한 '속성'을 가질 수는 없습니다. 기본 `AttributeSet` 클래스는 상태 `Attribute`만 가질 수 있지만 서브클래싱된 `AttributeSet`은 방패 `Attribute`를 추가할 수 있습니다. 방패 `Attribute`가 있는 서브클래싱된 `AttributeSet`은 기본 `AttributeSet` 클래스와 다르게 받는 피해를 분산합니다.
 
 (`Meta Attributes`는 "얼마의 피해를 받았는가?"와 "피해를 어떻게 적용해야 하는가?" 사이를 논리적으로 분리시킨다. 이 말은 `Gameplay Effects`와 `Execution Calculations`가 대상이 피해를 어떻게 처리하든 알 필요 없다는 것이다. 앞의 예시를 계속 얘기하자면, `Gameplay Effect`는 100의 피해를 줘야 한다고 알리고 `AttributeSet`은 알아서 10% 차감한 90의 체력을 깎는다. )
 
@@ -606,7 +673,11 @@ A custom Blueprint node that wraps this into an `ASyncTask` is included in the S
 #### 4.3.5 Derived Attributes
 To make an `Attribute` that has some or all of its value derived from one or more other `Attributes`, use an `Infinite` `GameplayEffect` with one or more `Attribute Based` or [`MMC`](#concepts-ge-mmc) [`Modifiers`](#concepts-ge-mods). The `Derived Attribute` will update automatically when an `Attribute` that it depends on is updated.
 
+하나 이상의 다른 '속성'에서 파생된 값의 일부 또는 전부를 갖는 '속성'을 만들려면 하나 이상의 '속성 기반' 또는 'MMC'와 함께 '무한' 'GameplayEffect'를 사용하세요. '파생 속성'은 의존하는 '속성'이 업데이트되면 자동으로 업데이트됩니다.
+
 The final formula for all the `Modifiers` on a `Derived Attribute` is the same formula for `Modifier Aggregators`. If you need calculations to happen in a certain order, do it all inside of an `MMC`.
+
+'파생 속성'의 모든 '수정자'에 대한 최종 공식은 '수정자 집계자'에 대한 공식과 동일합니다. 특정 순서로 계산을 수행해야 하는 경우 'MMC' 내부에서 모든 작업을 수행합니다.
 
 (하나 이상의 다른 `Attributes` 에서 파생된 값의 일부 또는 전부를 갖는 `Attributes`를 만들기 위해, 한 개 이상의 `Attribute Based` 또는 [`MMC`](#concepts-ge-mmc) [`Modifiers`](#concepts-ge-mods)와 함께 `Infinite` `GameplayEffect`를 써라)
 
@@ -704,11 +775,11 @@ There's a few ways to implement equippable items with `Attributes` (weapon ammo,
 ###### 4.4.2.3.1 Plain Floats on the Item
 Instead of `Attributes`, store plain float values on the item class instance. Fortnite and [GASShooter](https://github.com/tranek/GASShooter) handle gun ammo this way. For a gun, store the max clip size, current ammo in clip, reserve ammo, etc directly as replicated floats (`COND_OwnerOnly`) on the gun instance. If weapons share reserve ammo, you would move the reserve ammo onto the character as an `Attribute` in a shared ammo `AttributeSet` (reload abilities can use a `Cost GE` to pull from reserve ammo into the gun's float clip ammo). Since you're not using `Attributes` for current clip ammo, you will need to override some functions in `UGameplayAbility` to check and apply cost against the floats on the gun. Making the gun the `SourceObject` in the [`GameplayAbilitySpec`](https://github.com/tranek/GASDocumentation#concepts-ga-spec) when granting the ability means you'll have access to the gun that granted the ability inside the ability.
 
-(`Attributes`를 쓰지 말고 실수를 아이템에 저장한다. Fortnite와 [GASShooter](https://github.com/tranek/GASShooter)는 총기 탄약 수를 이렇게 구현한다. 뒤는 모르겠음)
+'속성' 대신 항목 클래스 인스턴스에 일반 부동 소수점 값을 저장합니다. Fortnite와 GASShooter는 총기 탄약을 이런 식으로 처리합니다. 총의 경우 최대 클립 크기, 클립의 현재 탄약, 예비 탄약 등을 총 인스턴스에 복제된 부동 소수점(`COND_OwnerOnly`)으로 직접 저장합니다. 무기가 예비 탄약을 공유하는 경우 공유 탄약 'AttributeSet'의 '속성'으로 예비 탄약을 캐릭터에 옮깁니다(재장전 능력은 예비 탄약에서 총의 플로트 클립 탄약으로 끌어오기 위해 '비용 GE'를 사용할 수 있습니다). 현재 탄약에 '속성'을 사용하지 않기 때문에 'UGameplayAbility'의 일부 기능을 재정의하여 총의 부유물에 대한 비용을 확인하고 적용해야 합니다. 능력을 부여할 때 'GameplayAbilitySpec'에서 총을 'SourceObject'로 만드는 것은 당신을 의미합니다'
 
 To prevent the gun from replicating back the ammo amount and clobbering the local ammo amount during automatic fire, disable replication while the player has a `IsFiring` `GameplayTag` in `PreReplication()`. You're essentially doing your own local prediction here.
 
-(총쏠 때는 `PreReplication()` 안의 `IsFiring` `GameplayTag` 를 꺼라. )
+자동 발사 중에 총이 탄약 양을 복제하고 로컬 탄약 양을 방해하는 것을 방지하려면 플레이어가 `PreReplication()`에 `IsFiring` `GameplayTag`가 있는 동안 복제를 비활성화하십시오. 당신은 본질적으로 여기에서 당신 자신의 지역 예측을 하고 있습니다.
 
 ```c++
 void AGSWeapon::PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker)
@@ -727,17 +798,26 @@ Limitations:
 1. Can not use existing `GameplayEffect` workflow (`Cost GEs` for ammo use, etc)
 1. Requires work to override key functions on `UGameplayAbility` to check and apply ammo costs against the gun's floats
 
-( `AttributeSets` 사용 제한을 회피하는 대신 귀찮아짐)
+이익:
+1. 'AttributeSets' 사용의 제한을 피합니다(아래 참조).
+
+제한 사항:
+1. 기존 'GameplayEffect' 워크플로를 사용할 수 없습니다(탄약 사용을 위한 '비용 GE' 등).
+1. 'UGameplayAbility'의 주요 기능을 재정의하는 작업이 필요하여 총의 부유물에 대한 탄약 비용을 확인하고 적용해야 합니다.
+
 
 <a name="concepts-as-design-itemattributes-attributeset"></a>
 ###### 4.4.2.3.2 `AttributeSet` on the Item
 Using a separate `AttributeSet` on the item that gets [added to the player's `ASC` on adding it to the player's inventory](#concepts-as-design-addremoveruntime) can work, but it has some major limitations. I had this working in early versions of [GASShooter](https://github.com/tranek/GASShooter) for the weapon ammo. The weapon stores its `Attributes` such as max clip size, current ammo in clip, reserve ammo, etc in an `AttributeSet` that lives on the weapon class. If weapons share reserve ammo, you would move the reserve ammo onto the character in a shared ammo `AttributeSet`. When a weapon is added to the player's inventory on the server, the weapon would add its `AttributeSet` to the player's `ASC::SpawnedAttributes`. The server would then replicate this down to the client. If the weapon is removed from the inventory, it would remove its `AttributeSet` from the `ASC::SpawnedAttributes`.
 
+플레이어의 인벤토리에 추가할 때 플레이어의 'ASC'에 추가되는 항목에 별도의 'AttributeSet'을 사용하면 작동할 수 있지만 몇 가지 주요 제한 사항이 있습니다. 나는 무기 탄약을 위한 GASShooter의 초기 버전에서 이것을 작동시켰습니다. 무기는 최대 클립 크기, 클립의 현재 탄약, 예비 탄약 등과 같은 '속성'을 무기 클래스에 있는 'AttributeSet'에 저장합니다. 무기가 예비 탄약을 공유하는 경우 예비 탄약을 공유 탄약 'AttributeSet'의 캐릭터로 이동합니다. 무기가 서버의 플레이어 인벤토리에 추가되면 무기는 플레이어의 'ASC::SpawnedAttributes'에 'AttributeSet'을 추가합니다. 그런 다음 서버는 이를 클라이언트에 복제합니다. 무기가 인벤토리에서 제거되면 `ASC::SpawnedAttributes`에서 `AttributeSet`이 제거됩니다.
+
+
 ( 아이템이 [인벤토리에 들어갈 때 플레이어의 `ASC`에 추가](#concepts-as-design-addremoveruntime)할 수 있다면 별도의 `AttributeSet`을 사용하는것이 좋지만, 제한이 있다. 총알 부분에서 계속 이 작업을 했다. 무기에 있는 `AttributeSet`에 장탄량, 탄약 수 등을 `Attributes`로 저장했다. 무기가 예비 탄약을 공유할 경우 예비 탄약을 공유 탄약 '속성 세트'에 담아 캐릭터로 이동시킵니다. 무기가 서버의 플레이어 인벤토리에 추가 되면 무기는 플레이어의 {ASC ::SpawnedAttributes}에 {AttributeSet}을 추가합니다. 그런 다음 서버는 이를 클라이언트에 복제합니다. 무기가 인벤토리에서 제거되면 {ASC ::SpawnedAttributes}에서 {AttributeSet}을 제거합니다. )
 
 When the `AttributeSet` lives on something other than the `OwnerActor` (say a weapon), you'll initially get some compilation errors in the `AttributeSet`. The fix is to construct the `AttributeSet` in `BeginPlay()` instead of in the constructor and to implement `IAbilitySystemInterface` (set the pointer to the `ASC` when you add the weapon to the player inventory) on the weapon.
 
-(`AttributeSet`이 `OwnerActor`(예: 무기)가 아닌 다른 항목에 있는 경우 처음에는 `AttributeSet`에 일부 컴파일 오류가 발생합니다. 수정 사항은 생성자 대신 'BeginPlay()'에서 'AttributeSet'을 구성하고 무기에 'IAbilitySystemInterface'를 구현하는 것입니다(무기를 플레이어 인벤토리에 추가할 때 포인터를 'ASC'로 설정)).
+`AttributeSet`이 `OwnerActor`(예: 무기)가 아닌 다른 항목에 있는 경우 처음에는 `AttributeSet`에 일부 컴파일 오류가 발생합니다. 수정 사항은 생성자 대신 'BeginPlay()'에서 'AttributeSet'을 구성하고 무기에 'IAbilitySystemInterface'를 구현하는 것입니다(무기를 플레이어 인벤토리에 추가할 때 포인터를 'ASC'로 설정).
 
 ```c++
 void AGSWeapon::BeginPlay()
@@ -769,6 +849,10 @@ Limitations:
 1. 이전의 이유로 `AttributeSet` 클래스당 하나의 `AttributeSet` 인스턴스가 있었기 때문에 플레이어의 인벤토리에는 각 무기 유형 중 하나만 가질 수 있습니다.
 1. 'AttributeSet'을 제거하는 것은 위험합니다. GASShooter에서 플레이어가 로켓에서 자살한 경우 플레이어는 인벤토리에서 로켓 발사기를 즉시 제거합니다('ASC'의 'AttributeSet' 포함). 서버가 로켓 발사기의 탄약 '속성'이 변경되었음을 복제했을 때 클라이언트의 'ASC'에 '속성 집합'이 더 이상 존재하지 않고 게임이 충돌했습니다.
 
+1. 모든 무기 유형에 대해 새로운 'AttributeSet' 클래스를 만들어야 합니다. `ASCs`는 `Attribute`에 대한 변경이 `ASCs` `SpawnedAttributes` 배열에서 `AttributeSet` 클래스의 첫 번째 인스턴스를 찾기 때문에 기능적으로 클래스의 `AttributeSet` 인스턴스를 하나만 가질 수 있습니다. 동일한 `AttributeSet` 클래스의 추가 인스턴스는 무시됩니다.
+1. 이전의 이유로 `AttributeSet` 클래스당 하나의 `AttributeSet` 인스턴스가 있었기 때문에 플레이어의 인벤토리에는 각 무기 유형 중 하나만 가질 수 있습니다.
+1. 'AttributeSet'을 제거하는 것은 위험합니다. GASShooter에서 플레이어가 로켓에서 자살한 경우 플레이어는 인벤토리에서 로켓 발사기를 즉시 제거합니다('ASC'의 'AttributeSet' 포함). 서버가 로켓 발사기의 탄약 '속성'이 변경되었음을 복제했을 때 클라이언트의 'ASC'에 '속성 집합'이 더 이상 존재하지 않고 게임이 충돌했습니다.
+
 
 <a name="concepts-as-design-itemattributes-asc"></a>
 ###### 4.4.2.3.3 `ASC` on the Item
@@ -781,6 +865,13 @@ Putting a whole `AbilitySystemComponent` on each item is an extreme approach. I 
 > The first problem I see there would be implementing the IGameplayTagAssetInterface and IAbilitySystemInterface on the owning actor. The former may be possible: just aggregate the tags from all all ASCs (but watch out -HasAllMatchingGameplayTags may be met only via cross ASC aggregation. It wouldn't be enough to just forward that calls to each ASC and OR the results together). But the later is even trickier: which ASC is the authoritative one? If someone wants to apply a GE -which one should receive it? Maybe you can work these out but this side of the problem will be the hardest: owners will multiple ASCs beneath them.
 > 
 > Separate ASCs on the pawn and the weapon can make sense on its own though. E.g, distinguishing between tags the describe the weapon vs those that describe the owning pawn. Maybe it does make sense that tags granted to the weapon also “apply” to the owner and nothing else (E.g, attributes and GEs are independent but the owner will aggregate the owned tags like I describe above). This could work out, I am sure. But having multiple ASCs with the same owner may get dicey.
+
+> 소유자는 같지만 아바타가 다른 여러 능력 시스템 구성 요소를 가질 수 있습니까(예: 소유자가 PlayerState로 설정된 폰 및 무기/아이템/발사체)?
+>
+> 내가 보는 첫 번째 문제는 소유 액터에서 IGameplayTagAssetInterface 및 IAbilitySystemInterface를 구현하는 것입니다. 전자가 가능할 수 있습니다. 모든 ASC에서 태그를 집계하기만 하면 됩니다(그러나 -HasAllMatchingGameplayTags는 교차 ASC 집계를 통해서만 충족될 수 있습니다. 해당 호출을 각 ASC에 전달하고 결과를 함께 OR하는 것만으로는 충분하지 않습니다). 그러나 후자는 더 까다롭습니다. 어떤 ASC가 권위 있는 것입니까? 누군가가 GE를 신청하고 싶다면 어떤 사람이 받아야 할까요? 아마도 당신은 이것을 해결할 수 있지만 문제의 이 면은 가장 어려울 것입니다. 소유자는 그 아래에 여러 ASC를 가질 것입니다.
+>
+> 폰과 무기에 ASC를 분리하는 것은 그 자체로 의미가 있을 수 있습니다. 예를 들어, 무기를 설명하는 태그와 소유 폰을 설명하는 태그를 구별합니다. 아마도 무기에 부여된 태그가 소유자에게 "적용"되고 다른 어떤 것도 적용되지 않는다는 것이 합리적일 수 있습니다(예: 속성과 GE는 독립적이지만 소유자는 위에서 설명한 것처럼 소유 태그를 집계합니다). 이것은 효과가 있을 수 있다고 확신합니다. 그러나 동일한 소유자에게 여러 ASC를 보유하는 것은 위험할 수 있습니다.
+
 
 *Dave Ratti from Epic's answer to [community questions #6](https://epicgames.ent.box.com/s/m1egifkxv3he3u3xezb9hzbgroxyhx89)*
 
@@ -3707,6 +3798,8 @@ void SetReticleMaterialParamVector(FName ParamName, FVector value);
 #### 4.11.5 Gameplay Effect Containers Targeting
 [`GameplayEffectContainers`](#concepts-ge-containers) come with an optional, efficient means of producing [`TargetData`](#concepts-targeting-data). This targeting takes places instantly when the `EffectContainer` is applied on the client and the server. It's more efficient than [`TargetActors`](#concepts-targeting-actors) because it runs on the CDO of the targeting object (no spawning and destroying of `Actors`), but it lacks player input, happens instantly without needing confirmation, cannot be canceled, and cannot send data from the client to the server (produces data on both). It works well for instant traces and collision overlaps. Epic's [Action RPG Sample Project](https://www.unrealengine.com/marketplace/en-US/product/action-rpg) includes two example types of targeting with its containers - target the ability owner and pull `TargetData` from an event. It also implements one in Blueprint to do instant sphere traces at some offset (set by child Blueprint classes) from the player. You can subclass `URPGTargetType` in C++ or Blueprint to make your own targeting types.
 
+`GameplayEffectContainers` come with an optional, efficient means of producing `TargetData`. This targeting takes places instantly when the `EffectContainer` is applied on the client and the server. It's more efficient than `TargetActors` because it runs on the CDO of the targeting object (no spawning and destroying of `Actors`), but it lacks player input, happens instantly without needing confirmation, cannot be canceled, and cannot send data from the client to the server (produces data on both). It works well for instant traces and collision overlaps. Epic's Action RPG Sample Project includes two example types of targeting with its containers - target the ability owner and pull `TargetData` from an event. It also implements one in Blueprint to do instant sphere traces at some offset (set by child Blueprint classes) from the player. You can subclass `URPGTargetType` in C++ or Blueprint to make your own targeting types.
+
 **[⬆ Back to Top](#table-of-contents)**
 
 <a name="cae"></a>
@@ -3716,11 +3809,19 @@ void SetReticleMaterialParamVector(FName ParamName, FVector value);
 ### 5.1 Stun
 Typically with stuns, we want to cancel all of a `Character's` active `GameplayAbilities`, prevent new `GameplayAbility` activations, and prevent movement throughout the duration of the stun. The Sample Project's Meteor `GameplayAbility` applies a stun on hit targets.
 
+일반적으로 기절의 경우 '캐릭터'의 활성 'GameplayAbilities'를 모두 취소하고, 새로운 'GameplayAbility' 활성화를 방지하고, 기절 기간 동안 움직임을 방지하려고 합니다. 샘플 프로젝트의 Meteor 'GameplayAbility'는 적중 대상에 기절을 적용합니다.
+
 To cancel the target's active `GameplayAbilities`, we call `AbilitySystemComponent->CancelAbilities()` when the stun [`GameplayTag` is added](#concepts-gt-change).
+
+대상의 활성 'GameplayAbilities'를 취소하려면 스턴 'GameplayTag'가 추가될 때 'AbilitySystemComponent->CancelAbilities()'를 호출합니다.
 
 To prevent new `GameplayAbilities` from activating while stunned, the `GameplayAbilities` are given the stun `GameplayTag` in their [`Activation Blocked Tags` `GameplayTagContainer`](#concepts-ga-tags).
 
+기절 상태에서 새로운 'GameplayAbilities'가 활성화되는 것을 방지하기 위해 'GameplayAbilities'에는 'Activation Blocked Tags' 'GameplayTagContainer'에서 기절된 'GameplayTag'가 지정됩니다.
+
 To prevent movement while stunned, we override the `CharacterMovementComponent's` `GetMaxSpeed()` function to return 0 when the owner has the stun `GameplayTag`.
+
+기절 상태에서 움직임을 방지하기 위해 소유자가 기절한 'GameplayTag'가 있을 때 0을 반환하도록 'CharacterMovementComponent'의 'GetMaxSpeed()' 함수를 재정의합니다.
 
 **[⬆ Back to Top](#table-of-contents)**
 
@@ -3728,9 +3829,15 @@ To prevent movement while stunned, we override the `CharacterMovementComponent's
 ### 5.2 Sprint
 The Sample Project provides an example of how to sprint - run faster while `Left Shift` is held down.
 
+샘플 프로젝트는 'Left Shift' 키를 누르고 있는 동안 더 빠르게 달리는 방법의 예를 제공합니다.
+
 The faster movement is handled predictively by the `CharacterMovementComponent` by sending a flag over the network to the server. See `GDCharacterMovementComponent.h/cpp` for details.
 
+더 빠른 움직임은 'CharacterMovementComponent'가 네트워크를 통해 서버로 플래그를 전송하여 예측적으로 처리됩니다. 자세한 내용은 `GDCharacterMovementComponent.h/cpp`를 참조하세요.
+
 The `GA` handles responding to the `Left Shift` input, tells the `CMC` to begin and stop sprinting, and to predictively charge stamina while `Left Shift` is pressed. See `GA_Sprint_BP` for details.
+
+'GA'는 'Left Shift' 입력에 대한 응답을 처리하고, 'CMC'에 전력 질주를 시작 및 중지하고, 'Left Shift'를 누르고 있는 동안 체력을 예측적으로 충전하도록 지시합니다. 자세한 내용은 `GA_Sprint_BP`를 참조하세요.
 
 **[⬆ Back to Top](#table-of-contents)**
 
@@ -3738,15 +3845,23 @@ The `GA` handles responding to the `Left Shift` input, tells the `CMC` to begin 
 ### 5.3 Aim Down Sights
 The Sample Project handles this the exact same way as sprinting but decreasing the movement speed instead of increasing it.
 
+샘플 프로젝트는 이것을 전력 질주와 똑같은 방식으로 처리하지만 이동 속도를 높이는 대신 감소시킵니다.
+
 See `GDCharacterMovementComponent.h/cpp` for details on predictively decreasing the movement speed.
 
+이동 속도를 예측적으로 줄이는 방법에 대한 자세한 내용은 `GDCharacterMovementComponent.h/cpp`를 참조하세요.
+
 See `GA_AimDownSight_BP` for details on handling the input. There is no stamina cost for aiming down sights.
+
+입력 처리에 대한 자세한 내용은 `GA_AimDownSight_BP`를 참조하세요. 조준경 조준에는 스태미나 비용이 없습니다.
 
 **[⬆ Back to Top](#table-of-contents)**
 
 <a name="cae-ls"></a>
 ### 5.4 Lifesteal
 I handle lifesteal inside of the damage [`ExecutionCalculation`](#concepts-ge-ec). The `GameplayEffect` will have a `GameplayTag` on it like `Effect.CanLifesteal`. The `ExecutionCalculation` checks if the `GameplayEffectSpec` has that `Effect.CanLifesteal` `GameplayTag`. If the `GameplayTag` exists, the `ExecutionCalculation` [creates a dynamic `Instant` `GameplayEffect`](#concepts-ge-dynamic) with the amount of health to give as the modifier and applies it back to the `Source's` `ASC`.
+
+저는 데미지 'ExecutionCalculation' 안에서 흡혈을 처리합니다. 'GameplayEffect'에는 'Effect.CanLifesteal'과 같은 'GameplayTag'가 있습니다. 'ExecutionCalculation'은 'GameplayEffectSpec'에 'Effect.CanLifesteal' 'GameplayTag'가 있는지 확인합니다. 'GameplayTag'가 존재하는 경우, 'ExecutionCalculation'은 제공할 체력의 양을 수정자로 하여 동적 'Instant' 'GameplayEffect'를 생성하고 이를 'Source'의 'ASC'에 다시 적용합니다.
 
 ```c++
 if (SpecAssetTags.HasTag(FGameplayTag::RequestGameplayTag(FName("Effect.Damage.CanLifesteal"))))
@@ -3773,12 +3888,20 @@ if (SpecAssetTags.HasTag(FGameplayTag::RequestGameplayTag(FName("Effect.Damage.C
 ### 5.5 Generating a Random Number on Client and Server
 Sometimes you need to generate a "random" number inside of a `GameplayAbility` for things like bullet recoil or spread. The client and the server will both want to generate the same random numbers. To do this, we must set the `random seed` to be the same at the time of `GameplayAbility` activation. You will want to set the `random seed` each time you activate the `GameplayAbility` in case the client mispredicts activation and its random number sequence becomes out of synch with the server's.
 
+때때로 총알 반동이나 확산과 같은 것을 위해 `GameplayAbility` 내부에 "임의" 숫자를 생성해야 합니다. 클라이언트와 서버는 모두 동일한 난수를 생성하기를 원할 것입니다. 이렇게 하려면 `GameplayAbility` 활성화 시 `random seed`를 동일하게 설정해야 합니다. 클라이언트가 활성화를 잘못 예측하고 난수 시퀀스가 서버의 것과 동기화되지 않는 경우를 대비하여 `GameplayAbility`를 활성화할 때마다 `random seed`를 설정하고 싶을 것입니다.
+
 | Seed Setting Method                                                          | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Use the activation prediction key                                            | The `GameplayAbility` activation prediction key is an int16 guaranteed to be synchronized and available in both the client and server in the `Activation()`. You can set this as the `random seed` on both the client and the server. The downside to this method is that the prediction key always starts at zero each time the game starts and consistently increments the value to use between generating keys. This means each match will have the exact same random number sequence. This may or may not be random enough for your needs. |
 | Send a seed through an event payload when you activate the `GameplayAbility` | Activate your `GameplayAbility` by event and send the randomly generated seed from the client to the server via the replicated event payload. This allows for more randomness but the client could easily hack their game to only send the same seed value every time. Also activating `GameplayAbilities` by event will prevent them from activating from the input bind.                                                                                                                                                                     |
+| 종자 설정 방법 | 설명 |
+| -------------------------------------------------- -------------------------- | -------------------------------------------------- -------------------------------------------------- -------------------------------------------------- -------------------------------------------------- -------------------------------------------------- -------------------------------------------------- -------------------------------------------------- -------------------------------------------------- -------------------------------------------------- -------------------------------------------------- -------------------------- |
+| 활성화 예측 키 사용 | `GameplayAbility` 활성화 예측 키는 `Activation()`에서 클라이언트와 서버 모두에서 동기화되고 사용 가능하도록 보장된 int16입니다. 클라이언트와 서버 모두에서 '랜덤 시드'로 설정할 수 있습니다. 이 방법의 단점은 게임이 시작될 때마다 예측 키가 항상 0에서 시작하고 키 생성 사이에 사용할 값을 지속적으로 증가시킨다는 것입니다. 이것은 각 일치가 정확히 동일한 난수 시퀀스를 가짐을 의미합니다. 이것은 필요에 따라 충분히 무작위적일 수도 있고 아닐 수도 있습니다. |
+| `GameplayAbility`를 활성화할 때 이벤트 페이로드를 통해 시드 보내기 | 이벤트별로 'GameplayAbility'를 활성화하고 복제된 이벤트 페이로드를 통해 클라이언트에서 서버로 무작위로 생성된 시드를 보냅니다. 이것은 더 많은 임의성을 허용하지만 클라이언트는 게임을 쉽게 해킹하여 매번 동일한 시드 값만 보낼 수 있습니다. 또한 이벤트로 'GameplayAbilities'를 활성화하면 입력 바인딩에서 활성화되지 않습니다. |
 
 If your random deviation is small, most players won't notice that the sequence is the same every game and using the activation prediction key as the `random seed` should work for you. If you're doing something more complex that needs to be hacker proof, perhaps using a `Server Initiated` `GameplayAbility` would work better where the server can create the prediction key or generate the `random seed` to send via an event payload.
+
+무작위 편차가 작은 경우 대부분의 플레이어는 시퀀스가 모든 게임에서 동일하다는 것을 알지 못하며 '임의 시드'로 활성화 예측 키를 사용하면 효과가 있습니다. 해커 증거가 필요한 더 복잡한 작업을 수행하는 경우 'Server Initiated' 'GameplayAbility'를 사용하는 것이 서버가 예측 키를 생성하거나 이벤트 페이로드를 통해 보낼 '랜덤 시드'를 생성할 수 있는 곳에서 더 잘 작동합니다.
 
 **[⬆ Back to Top](#table-of-contents)**
 
@@ -3786,7 +3909,11 @@ If your random deviation is small, most players won't notice that the sequence i
 ### 5.6 Critical Hits
 I handle critical hits inside of the damage [`ExecutionCalculation`](#concepts-ge-ec). The `GameplayEffect` will have a `GameplayTag` on it like `Effect.CanCrit`. The `ExecutionCalculation` checks if the `GameplayEffectSpec` has that `Effect.CanCrit` `GameplayTag`. If the `GameplayTag` exists, the `ExecutionCalculation` generates a random number corresponding to the critical hit chance (`Attribute` captured from the `Source`) and adds the critical hit damage (also an `Attribute` captured from the `Source`) if it succeeded. Since I don't predict damage, I don't have to worry about synchronizing the random number generators on the client and server since the `ExecutionCalculation` will only run on the server. If you tried to do this predictively using an `MMC` to do your damage calculation, you would have to get a reference to the `random seed` from the `GameplayEffectSpec->GameplayEffectContext->GameplayAbilityInstance`.
 
+성공하면 데미지 'ExecutionCalculation' 내에서 치명타를 처리합니다. 나는 손상을 예측하지 않기 때문에 'ExecutionCalculation'이 서버에서만 실행되기 때문에 클라이언트와 서버에서 난수 생성기를 동기화하는 것에 대해 걱정할 필요가 없습니다. 피해 계산을 위해 `MMC`를 사용하여 예측적으로 이 작업을 수행하려고 하면 `GameplayEffectSpec->GameplayEffectContext->GameplayAbilityInstance`에서 `random seed`에 대한 참조를 가져와야 합니다.
+
 See how [GASShooter](https://github.com/tranek/GASShooter) does headshots. It's the same concept except that it does not rely on a random number for chance and instead checks the `FHitResult` bone name.
+
+GASShooter가 헤드샷을 수행하는 방법을 확인하십시오. 무작위 숫자에 의존하지 않고 대신 'FHitResult' 본 이름을 확인한다는 점을 제외하면 동일한 개념입니다.
 
 **[⬆ Back to Top](#table-of-contents)**
 
@@ -3794,17 +3921,23 @@ See how [GASShooter](https://github.com/tranek/GASShooter) does headshots. It's 
 ### 5.7 Non-Stacking Gameplay Effects but Only the Greatest Magnitude Actually Affects the Target
 Slow effects in Paragon did not stack. Each slow instance applied and kept track of their lifetimes as normal, but only the greatest magnitude slow effect actually affected the `Character`. GAS provides for this scenario out of the box with `AggregatorEvaluateMetaData`. See [`AggregatorEvaluateMetaData()`](#concepts-as-onattributeaggregatorcreated) for details and implementation.
 
+Paragon의 슬로우 효과가 중첩되지 않았습니다. 각각의 느린 인스턴스가 적용되고 수명을 정상적으로 추적했지만 실제로 가장 큰 규모의 느린 효과만 '캐릭터'에 영향을 미쳤습니다. GAS는 'AggregatorEvaluateMetaData'를 사용하여 이 시나리오를 즉시 제공합니다. 자세한 내용과 구현은 `AggregatorEvaluateMetaData()`를 참조하세요.
+
 **[⬆ Back to Top](#table-of-contents)**
 
 <a name="cae-paused"></a>
 ### 5.8 Generate Target Data While Game is Paused
 If you need to pause the game while waiting to generate [`TargetData`](#concepts-targeting-data) from a `WaitTargetData` `AbilityTask` from your player, I suggest instead of pausing to use `slomo 0`.
 
+플레이어의 `WaitTargetData` `AbilityTask`에서 `TargetData`를 생성하기 위해 기다리는 동안 게임을 일시 중지해야 하는 경우 일시 중지하는 대신 `slomo 0`을 사용하는 것이 좋습니다.
+
 **[⬆ Back to Top](#table-of-contents)**
 
 <a name="cae-onebuttoninteractionsystem"></a>
 ### 5.9 One Button Interaction System
 [GASShooter](https://github.com/tranek/GASShooter) implements a one button interaction system where the player can press or hold 'E' to interact with interactable objects like reviving a player, opening a weapon chest, and opening or closing a sliding door.
+
+GASShooter는 플레이어가 'E'를 누르거나 길게 눌러 플레이어 소생, 무기 상자 열기, 슬라이딩 도어 열기 또는 닫기와 같은 상호 작용 가능한 개체와 상호 작용할 수 있는 원 버튼 상호 작용 시스템을 구현합니다.
 
 **[⬆ Back to Top](#table-of-contents)**
 
@@ -3816,9 +3949,20 @@ Often when debugging GAS related issues, you want to know things like:
 > * "What gameplay effects do I currently have?"
 > * "What abilities do I have granted, which ones are running, and which ones are blocked from activating?".
 
+종종 GAS 관련 문제를 디버깅할 때 다음과 같은 사항을 알고 싶어합니다.
+> * "내 속성의 값은 무엇입니까?"
+> * "나는 어떤 게임플레이 태그를 가지고 있나요?"
+> * "현재 내가 가지고 있는 게임 플레이 효과는 무엇입니까?"
+> * "내가 부여한 능력은 무엇이며 어떤 능력이 실행되고 어떤 능력이 활성화되지 않습니까?".
+
+
 GAS comes with two techniques for answering these questions at runtime - [`showdebug abilitysystem`](#debugging-sd) and hooks in the [`GameplayDebugger`](#debugging-gd).
 
+GAS는 런타임에 이러한 질문에 답하기 위한 두 가지 기술인 `showdebug 능력 시스템`을 제공합니다.
+
 **Tip:** UE5 likes to optimize C++ code which makes it hard to debug some functions. You will encounter this rarely when tracing deep into your code. If setting your Visual Studio solution configuration to `DebugGame Editor` still prevents tracing code or inspecting variables, you can disable all optimizations by wrapping the optimized function with the `PRAGMA_DISABLE_OPTIMIZATION_ACTUAL` and `PRAGMA_ENABLE_OPTIMIZATION_ACTUAL` macros. This cannot be used on the plugin code unless you rebuild the plugin from source. This may or may not work on inline functions depending on what they do and where they are. Be sure to remove the macros when you're done debugging!
+
+**팁:** UE5는 C++ 코드 최적화를 좋아하므로 일부 기능을 디버그하기 어렵습니다. 코드를 깊숙이 추적할 때 이 문제가 거의 발생하지 않습니다. Visual Studio 솔루션 구성을 `DebugGame Editor`로 설정해도 여전히 코드 추적 또는 변수 검사가 방지되는 경우 최적화된 함수를 `PRAGMA_DISABLE_OPTIMIZATION_ACTUAL` 및 `PRAGMA_ENABLE_OPTIMIZATION_ACTUAL` 매크로로 래핑하여 모든 최적화를 비활성화할 수 있습니다. 소스에서 플러그인을 다시 빌드하지 않는 한 플러그인 코드에서 사용할 수 없습니다. 이것은 인라인 함수가 수행하는 작업과 위치에 따라 작동하거나 작동하지 않을 수 있습니다. 디버깅이 끝나면 매크로를 제거하십시오!
 
 ```c++
 PRAGMA_DISABLE_OPTIMIZATION_ACTUAL
@@ -3835,18 +3979,32 @@ PRAGMA_ENABLE_OPTIMIZATION_ACTUAL
 ### 6.1 showdebug abilitysystem
 Type `showdebug abilitysystem` in the in-game console. This feature is split into three "pages". All three pages will show the `GameplayTags` that you currently have. Type `AbilitySystem.Debug.NextCategory` into the console to cycle between the pages.
 
+게임 내 콘솔에 `showdebugabilitysystem`을 입력합니다. 이 기능은 3개의 "페이지"로 나뉩니다. 세 페이지 모두 현재 가지고 있는 'GameplayTags'를 표시합니다. 콘솔에 `AbilitySystem.Debug.NextCategory`를 입력하여 페이지 사이를 순환합니다.
+
 The first page shows the `CurrentValue` of all of your `Attributes`:
 ![First Page of showdebug abilitysystem](https://github.com/tranek/GASDocumentation/raw/master/Images/showdebugpage1.png)
+
+첫 번째 페이지는 모든 '속성'의 'CurrentValue'를 보여줍니다.
+!showdebug 능력 시스템의 첫 페이지
+
 
 The second page shows all of the `Duration` and `Infinite` `GameplayEffects` on you, their number of stacks, what `GameplayTags` they give, and what `Modifiers` they give.
 ![Second Page of showdebug abilitysystem](https://github.com/tranek/GASDocumentation/raw/master/Images/showdebugpage2.png)
 
+두 번째 페이지는 모든 `Duration` 및 `Infinite` `GameplayEffects`, 스택 수, 제공하는 `GameplayTags` 및 제공하는 `Modifiers`를 보여줍니다.
+
 The third page shows all of the `GameplayAbilities` that have been granted to you, whether they are currently running, whether they are blocked from activating, and the status of currently running `AbilityTasks`.
 ![Third Page of showdebug abilitysystem](https://github.com/tranek/GASDocumentation/raw/master/Images/showdebugpage3.png)
 
+세 번째 페이지에는 귀하에게 부여된 모든 'GameplayAbilities', 현재 실행 중인지, 활성화가 차단되었는지 여부, 현재 실행 중인 'AbilityTasks' 상태가 표시됩니다.
+
 While you can cycle between targets with `PageUp` and `PageDown`, the pages will only show data for the `ASC` on your locally controlled `Character`. However, using `AbilitySystem.Debug.NextTarget` and `AbilitySystem.Debug.PrevTarget` will show data for other `ASCs`, but it will not update the top half of the debug information nor will it update the green targeting rectangular prism so there is no way to know which `ASC` is currently being targeted. This bug has been reported https://issues.unrealengine.com/issue/UE-90437.
 
+'PageUp' 및 'PageDown'을 사용하여 대상 간에 순환할 수 있지만 페이지는 로컬로 제어되는 'Character'의 'ASC'에 대한 데이터만 표시합니다. 그러나 `AbilitySystem.Debug.NextTarget` 및 `AbilitySystem.Debug.PrevTarget`을 사용하면 다른 `ASC`에 대한 데이터가 표시되지만 디버그 정보의 위쪽 절반은 업데이트되지 않으며 녹색 타겟팅 직사각형 프리즘도 업데이트되지 않으므로 현재 어떤 'ASC'가 대상이 되는지 알 수 있는 방법이 없습니다. 이 버그는 https://issues.unrealengine.com/issue/UE-90437에 보고되었습니다.
+
 **Note:** For `showdebug abilitysystem` to work an actual HUD class must be selected in the GameMode. Otherwise the command is not found and "Unknown Command" is returned.
+
+**참고:** 실제 HUD 클래스가 작동하려면 `showdebug 능력 시스템`이 게임 모드에서 선택되어야 합니다. 그렇지 않으면 명령을 찾을 수 없고 "알 수 없는 명령"이 반환됩니다.
 
 **[⬆ Back to Top](#table-of-contents)**
 
@@ -3854,7 +4012,11 @@ While you can cycle between targets with `PageUp` and `PageDown`, the pages will
 ### 6.2 Gameplay Debugger
 GAS adds functionality to the Gameplay Debugger. Access the Gameplay Debugger with the Apostrophe (') key. Enable the Abilities category by pressing 3 on your numpad. The category may be different depending on what plugins you have. If your keyboard doesn't have a numpad like a laptop, then you can change the keybindings in the project settings.
 
+GAS는 게임 플레이 디버거에 기능을 추가합니다. 아포스트로피(') 키를 사용하여 게임 플레이 디버거에 액세스합니다. 숫자 키패드에서 3을 눌러 능력 범주를 활성화합니다. 카테고리는 보유하고 있는 플러그인에 따라 다를 수 있습니다. 키보드에 노트북과 같은 숫자 키패드가 없는 경우 프로젝트 설정에서 키 바인딩을 변경할 수 있습니다.
+
 Use the Gameplay Debugger when you want to see the `GameplayTags`, `GameplayEffects`, and `GameplayAbilities` on **other** `Characters`. Unfortunately it does not show the `CurrentValue` of the target's `Attributes`. It will target whatever `Character` is in the center of your screen. You can change targets by selecting them in the World Outliner in the Editor or by looking at a different `Character` and press Apostrophe (') again. The currently inspected `Character` has the largest red circle above it.
+
+**other** `Characters`에서 `GameplayTags`, `GameplayEffects` 및 `GameplayAbilities`를 보려면 게임플레이 디버거를 사용하세요. 불행히도 대상의 '속성'의 'CurrentValue'는 표시되지 않습니다. 화면 중앙에 있는 'Character'를 대상으로 합니다. Editor의 World Outliner에서 대상을 선택하거나 다른 'Character'를 보고 아포스트로피(')를 다시 눌러 대상을 변경할 수 있습니다. 현재 검사된 'Character'는 그 위에 가장 큰 빨간색 원이 있습니다.
 
 ![Gameplay Debugger](https://github.com/tranek/GASDocumentation/raw/master/Images/gameplaydebugger.png)
 
@@ -3864,23 +4026,30 @@ Use the Gameplay Debugger when you want to see the `GameplayTags`, `GameplayEffe
 ### 6.3 GAS Logging
 The GAS source code contains a lot of logging statements produced at varying verbosity levels. You will most likely see these as `ABILITY_LOG()` statements. The default verbosity level is `Display`. Anything higher will not be displayed in the console by default.
 
+GAS 소스 코드에는 다양한 상세 수준에서 생성된 많은 로깅 문이 포함되어 있습니다. 이것을 `ABILITY_LOG()` 문으로 볼 가능성이 큽니다. 기본 상세 수준은 '디스플레이'입니다. 더 높은 값은 기본적으로 콘솔에 표시되지 않습니다.
+
 To change the verbosity level of a log category, type into your console:
+
+로그 범주의 상세 수준을 변경하려면 콘솔에 다음을 입력합니다.
 
 ```
 log [category] [verbosity]
 ```
 
 For example, to turn on `ABILITY_LOG()` statements, you would type into your console:
+예를 들어 `ABILITY_LOG()` 문을 켜려면 콘솔에 다음을 입력합니다.:
 ```
 log LogAbilitySystem VeryVerbose
 ```
 
 To reset it back to default, type:
+다시 기본값으로 재설정하려면 다음을 입력하십시오.:
 ```
 log LogAbilitySystem Display
 ```
 
 To display all log categories, type:
+모든 로그 범주를 표시하려면 다음을 입력하십시오.:
 ```
 log list
 ```
@@ -3899,6 +4068,21 @@ Notable GAS related logging categories:
 | LogGameplayTasks          | Log                     |
 | VLogAbilitySystem         | Display                 |
 
+주목할만한 GAS 관련 로깅 카테고리:
+
+| 로깅 카테고리 | 기본 상세 수준 |
+| -------------------------- | ----------------------- |
+| LogAbilitySystem | 디스플레이 |
+| LogAbilitySystemComponent | 로그 |
+| LogGameplayCue자세히 | 로그 |
+| LogGameplayCue번역기 | 디스플레이 |
+| LogGameplayEffectDetails | 로그 |
+| LogGameplayEffects | 디스플레이 |
+| LogGameplay태그 | 로그 |
+| LogGameplayTasks | 로그 |
+| VLogAbilitySystem | 디스플레이 |
+
+
 See the [Wiki on Logging](https://unrealcommunity.wiki/logging-lgpidy6i) for more information.
 
 **[⬆ Back to Top](#table-of-contents)**
@@ -3910,9 +4094,13 @@ See the [Wiki on Logging](https://unrealcommunity.wiki/logging-lgpidy6i) for mor
 ### 7.1 Ability Batching
 [`GameplayAbilities`](#concepts-ga) that activate, optionally send `TargetData` to the server, and end all in one frame can be [batched to condense two-three RPCs into one RPC](#concepts-ga-batching). These types of abilities are commonly used for hitscan guns.
 
+활성화하고 선택적으로 서버에 `TargetData`를 보내고 한 프레임에서 모두 끝나는 `GameplayAbilities`를 일괄 처리하여 2-3개의 RPC를 하나의 RPC로 압축할 수 있습니다. 이러한 유형의 능력은 일반적으로 히트스캔 총에 사용됩니다.
+
 <a name="optimizations-gameplaycuebatching"></a>
 ### 7.2 Gameplay Cue Batching
 If you're sending many [`GameplayCues`](#concepts-gc) at the same time, consider [batching them into one RPC](#concepts-gc-batching). The goal is to reduce the number of RPCs (`GameplayCues` are unreliable NetMulticasts) and send as little data as possible.
+
+동시에 많은 `GameplayCues`를 보내는 경우 하나의 RPC로 일괄 처리하는 것을 고려하십시오. 목표는 RPC 수를 줄이고(`GameplayCues`는 NetMulticasts 신뢰할 수 없음) 가능한 한 적은 데이터를 보내는 것입니다.
 
 <a name="optimizations-ascreplicationmode"></a>
 ### 7.3 AbilitySystemComponent Replication Mode
@@ -3922,13 +4110,19 @@ By default, the [`ASC`](#concepts-asc) is in [`Full Replication Mode`](#concepts
 ### 7.4 Attribute Proxy Replication
 In large games with many players like Fortnite Battle Royale (FNBR), there will be a lot of [`ASCs`](#concepts-asc) living on always-relevant `PlayerStates` replicating a lot of [`Attributes`](#concepts-a). To optimize this bottleneck, Fortnite disables the `ASC` and its [`AttributeSets`](#concepts-as) from replicating altogether on **simulated player-controlled proxies** in the `PlayerState::ReplicateSubobjects()`. Autonomous proxies and AI controlled `Pawns` still fully replicate according to their [`Replication Mode`](#concepts-asc-rm). Instead of replicating `Attributes` on the `ASC` on the always-relevant `PlayerStates`, FNBR uses a replicated proxy structure on the player's `Pawn`. When `Attributes` change on the server's `ASC`, they are changed on the proxy struct too. The client receives the replicated `Attributes` from the proxy struct and pushes the changes back into its local `ASC`. This allows `Attribute` replication to use the `Pawn`'s relevancy and `NetUpdateFrequency`. This proxy struct also replicates a small white-listed set of `GameplayTags` in a bitmask. This optimization reduces the amount of data over the network and allows us to take advantage of pawn relevancy. AI controlled `Pawns` have their `ASC` on the `Pawn` which already uses its relevancy so this optimization is not needed for them.
 
+FNBR(Fortnite Battle Royale)과 같이 플레이어가 많은 대형 게임에서는 'ASC'가 많이 있을 것입니다. 항상 관련이 있는 `PlayerStates`의 `ASC`에 `Attributes`를 복제하는 대신 FNBR은 플레이어의 `Pawn`에 복제된 프록시 구조를 사용합니다. '속성'이 서버의 'ASC'에서 변경되면 프록시 구조에서도 변경됩니다. 클라이언트는 프록시 구조체에서 복제된 '속성'을 수신하고 변경 사항을 로컬 'ASC'로 다시 푸시합니다. 이를 통해 `Attribute` 복제가 `Pawn`의 관련성과 `NetUpdateFrequency`를 사용할 수 있습니다. 이 프록시 구조체는 또한 비트마스크에 화이트리스트에 있는 작은 'GameplayTags' 세트를 복제합니다. 이 최적화는 네트워크를 통한 데이터의 양을 줄이고 폰 관련성을 활용할 수 있도록 합니다.
+
 > I’m not sure if it is still necessary with other server side optimizations that have been done since then (Replication Graph, etc) and it is not the most maintainable pattern.
+
+> 그 이후로 수행된 다른 서버 측 최적화(복제 그래프 등)에 여전히 필요한지 확실하지 않으며 가장 유지 관리 가능한 패턴이 아닙니다.
 
 *Dave Ratti from Epic's answer to [community questions #3](https://epicgames.ent.box.com/s/m1egifkxv3he3u3xezb9hzbgroxyhx89)*
 
 <a name="optimizations-asclazyloading"></a>
 ### 7.5 ASC Lazy Loading
 Fortnite Battle Royale (FNBR) has a lot of damageable `AActors` (trees, buildings, etc) in the world, each with an [`ASC`](#concepts-asc). This can add up in memory cost. FNBR optimizes this by lazily loading `ASCs` only when they're needed (when they first take damage by a player). This reduces overall memory usage since some `AActors` may never be damaged in a match.
+
+Fortnite Battle Royale(FNBR)에는 전 세계에 피해를 줄 수 있는 'AActor'(나무, 건물 등)가 많이 있으며 각각 'ASC'가 있습니다. 일부 'AActor'는 경기에서 절대 손상되지 않을 수 있으므로 전체 메모리 사용량을 줄입니다.
 
 **[⬆ Back to Top](#table-of-contents)**
 
@@ -3939,9 +4133,13 @@ Fortnite Battle Royale (FNBR) has a lot of damageable `AActors` (trees, building
 ### 8.1 Gameplay Effect Containers
 [GameplayEffectContainers](#concepts-ge-containers) combine [`GameplayEffectSpecs`](#concepts-ge-spec), [`TargetData`](#concepts-targeting-data), [simple targeting](#concepts-targeting-containers), and related functionality into easy to use structures. These are great for transfering `GameplayEffectSpecs` to projectiles spawned from an ability that will then apply them on collision at a later time.
 
+GameplayEffectContainers 및 관련 기능을 사용하기 쉬운 구조로. 이는 'GameplayEffectSpecs'를 능력에서 생성된 발사체로 전송하는 데 유용하며, 이 발사체는 나중에 충돌 시 적용됩니다.
+
 <a name="qol-asynctasksascdelegates"></a>
 ### 8.2 Blueprint AsyncTasks to Bind to ASC Delegates
 To increase designer-friendly iteration times, especially when designing UMG Widgets for UI, create Blueprint AsyncTasks (in C++) to bind to the common change delegates on the `ASC` directly from your UMG Blueprint graphs. The only caveat is that they must be manually destroyed (like when the widget is destroyed) otherwise they will live in memory forever. The Sample Project includes three Blueprint AsyncTasks.
+
+특히 UI용 UMG 위젯을 디자인할 때 디자이너에게 친숙한 반복 시간을 늘리려면 Blueprint AsyncTasks(C++에서)를 만들어 UMG 블루프린트 그래프에서 직접 'ASC'의 공통 변경 대리자에 바인딩합니다. 유일한 주의 사항은 위젯이 파괴될 때와 같이 수동으로 파괴되어야 한다는 것입니다. 그렇지 않으면 영원히 메모리에 남게 됩니다. 샘플 프로젝트에는 3개의 Blueprint AsyncTask가 포함되어 있습니다.
 
 Listen for `Attribute` changes:
 
@@ -3976,11 +4174,15 @@ You need to call [`UAbilitySystemGlobals::InitGlobalData()`](#concepts-asg-initg
 ### 9.3 Animation Montages are not replicating to clients
 Make sure that you're using the `PlayMontageAndWait` Blueprint node instead of `PlayMontage` in your [GameplayAbilities](#concepts-ga). This [AbilityTask](#concepts-at) replicates the montage through the `ASC` automatically whereas the `PlayMontage` node does not.
 
+GameplayAbilities에서 'PlayMontage' 대신 'PlayMontageAndWait' 블루프린트 노드를 사용하고 있는지 확인하십시오. 'PlayMontage' 노드는 그렇지 않은 반면, 'ASC'는 몽타주를 자동으로 복제합니다.
+
 **[⬆ Back to Top](#table-of-contents)**
 
 <a name="troubleshooting-duplicatingblueprintactors"></a>
 ### 9.4 Duplicating Blueprint Actors is setting AttributeSets to nullptr
 There is a [bug in Unreal Engine](https://issues.unrealengine.com/issue/UE-81109) that will set `AttributeSet` pointers on your classes to nullptr for Blueprint Actor classes that are duplicated from existing Blueprint Actor classes. There are a few workarounds for this. I've had success not creating bespoke `AttributeSet` pointers on my classes (no pointer in the .h, not calling `CreateDefaultSubobject` in the constructor) and instead just directly adding `AttributeSets` to the `ASC` in `PostInitializeComponents()` (not shown in the Sample Project). The replicated `AttributeSets` will still live in the `ASC's` `SpawnedAttributes` array. It would look something like this:
+
+Unreal Engine에는 기존 Blueprint Actor 클래스에서 복제된 Blueprint Actor 클래스에 대해 클래스의 'AttributeSet' 포인터를 nullptr로 설정하는 버그가 있습니다. 이에 대한 몇 가지 해결 방법이 있습니다. 내 클래스에 맞춤형 `AttributeSet` 포인터를 생성하지 않고(.h에 포인터가 없고 생성자에서 `CreateDefaultSubobject`를 호출하지 않음) 대신 `PostInitializeComponents()`의 `ASC`에 `AttributeSets`를 직접 추가하는 데 성공했습니다. ` (샘플 프로젝트에는 표시되지 않음). 복제된 `AttributeSets`는 여전히 `ASC'의 `SpawnedAttributes` 배열에 있습니다. 다음과 같이 보일 것입니다.
 
 ```c++
 void AGDPlayerState::PostInitializeComponents()
@@ -3996,6 +4198,8 @@ void AGDPlayerState::PostInitializeComponents()
 ```
 
 In this scenario, you would read and set the values in the `AttributeSet` using the functions on the `ASC` instead of [calling functions on the `AttributeSet` made from the macros](#concepts-as-attributes).
+
+이 시나리오에서는 매크로에서 만든 'AttributeSet'의 함수를 호출하는 대신 'ASC'의 함수를 사용하여 'AttributeSet'의 값을 읽고 설정합니다.
 
 ```c++
 /** Returns current (final) value of an attribute */
@@ -4303,6 +4507,222 @@ level or something that each game has to solve on it's own ?
 > I realize you were just asking about interpolation but that is the general answer: right now we have you do everything manually like NetSerialize, ShouldReconcile, Interpolate, etc but eventually we'll have a way that is like "if you want to just use the reflection system, you don't have to manually write this stuff". We just don't want to *force* everyone to use the reflection system since that imposes other limitations that we think we don't want to take on the lowest levels of the system. 
 >
 > And then just to tie this back to what I said earlier - right now we are really focused on getting a few very specific examples working and performant and then we will turn attention back to the front end and making things friendly to use and iterate on, reducing boilerplate, etc for everybody else to use. 
+
+
+GAS에 대한 Unreal Slackers Discord Server 커뮤니티 질문에 대한 Dave Ratti의 답변:
+
+1. GameplayAbilities 외부에 있거나 관계 없이 요청 시 범위가 지정된 예측 창을 어떻게 만들 수 있습니까? 예를 들어 Fire and Forget 발사체가 적을 공격할 때 어떻게 손상을 로컬로 예측할 수 있습니까?
+
+> PredictionKey 시스템은 실제로 이를 수행하기 위한 것이 아닙니다. 기본적으로 이 시스템은 클라이언트가 예측 작업을 시작하고 키로 이에 대해 서버에 알리고 클라이언트와 서버 모두 동일한 작업을 실행하고 예측 부작용을 주어진 예측 키와 연관시키는 방식으로 작동합니다. 예를 들어, "나는 능력을 예측적으로 활성화하고 있습니다" 또는 "목표 데이터를 생성했으며 WaitTargetData 작업 후에 능력 그래프의 일부를 예측적으로 실행할 예정입니다".
+>
+> 이 패턴을 사용하면 PredictionKey가 서버에서 "바운스"되고 UAbilitySystemComponent::ReplicatedPredictionKeyMap(복제된 속성)을 통해 클라이언트로 돌아옵니다. 키가 서버에서 다시 복제되면 클라이언트는 모든 로컬 예측 부작용(GameplayCues, GameplayEffects)을 실행 취소할 수 있습니다. 복제된 버전은 *거기에 있을 것이고* 없으면 잘못된 예측입니다. 예측 부작용을 취소할 때를 정확히 아는 것은 여기에서 매우 중요합니다. 너무 일찍 시작하면 격차가 발생하고 너무 늦으면 "이중"이 발생합니다. (이것은 지속 시간 기반 게임 플레이 효과의 반복되는 GameplayCue와 같은 상태 기반 예측을 나타냅니다. "버스트" GameplayCues 및 인스턴트 게임 플레이 효과는 "실행 취소"되거나 롤백되지 않습니다. 예측 키가 있는 경우 클라이언트에서 건너뜁니다. 그들과 관련된).
+>
+> 요점을 더 정확히 파악하려면 예측 조치가 서버가 자체적으로 수행하는 것이 아니라 클라이언트가 지시할 때만 수행하는 것이 중요합니다. 따라서 "무언가"가 서버가 클라이언트에게 한 번만 지시한 경우가 아니면 "요청 시 키를 생성하고 서버에 지시하여 무언가를 실행할 수 있도록 하십시오"라는 일반 사항을 갖는 것은 작동하지 않습니다.
+>
+> 원래 질문으로 돌아가서: 발사체를 불에 태우고 잊어버리는 것과 같은 것입니다. Paragon과 Fornite에는 모두 GameplayCues를 사용하는 발사체 액터 클래스가 있습니다. 그러나 우리는 이를 수행하기 위해 예측 키 시스템을 사용하지 않습니다. 대신 Non-Replication된 GameplayCues에 대한 개념이 있습니다. 로컬에서만 실행되고 서버에서 완전히 건너뛰는 GameplayCues. 본질적으로 이것들은 모두 UGameplayCueManager::HandleGameplayCue에 대한 직접 호출입니다. UAbilitySystemComponent를 통해 라우팅하지 않으므로 예측 키 확인/조기 반환이 이루어지지 않습니다.
+>
+> 복제되지 않은 GameplayCues의 단점은 복제되지 않는다는 것입니다. 따라서 이러한 함수를 호출하는 코드 경로가 모든 사람에서 실행되고 있는지 확인하는 것은 발사체 클래스/청사진에 달려 있습니다. 우리는 시작(BeginPlay에서 호출), 폭발, 벽에 부딪힘/캐릭터 등을 위한 큐가 있습니다.
+>
+> 이러한 유형의 이벤트는 이미 클라이언트 측에서 생성되었으므로 복제되지 않은 게임 플레이 큐를 호출하는 것은 큰 문제가 되지 않았습니다. 복잡한 청사진은 까다로울 수 있으며 어디에서 실행되고 있는지 이해하는 것은 작성자의 몫입니다.
+
+
+2. OnlyServerWait와 함께 WaitNetSyncAbilityTask를 사용하여 로컬로 예측된 GameplayAbility에서 범위가 지정된 예측 창을 만들 때 서버가 예측 키로 RPC를 기다리고 있기 때문에 플레이어가 GameplayAbilitytiming을 제어하기 위해 서버에 대한 패킷을 지연시켜 잠재적으로 부정 행위를 할 수 있습니까? 이것이 Paragon이나 Fortnite에서 문제가 된 적이 있습니까? 그렇다면 Epic은 이를 해결하기 위해 무엇을 했습니까?
+
+> 예, 이것은 유효한 우려입니다. 클라이언트 "신호"를 기다리는 서버에서 실행되는 모든 능력 청사진은 잠재적으로 지연 스위치 유형 악용에 취약합니다.
+>
+> Paragon에는 UAbilityTask_WaitTargetData와 유사한 사용자 지정 타겟팅 작업이 있습니다. 이 작업에서 우리는 즉각적인 타겟팅 모드를 위해 클라이언트에서 기다리는 시간 초과 또는 "최대 지연"이 있었습니다. 타겟팅 모드가 사용자 확인(버튼 누름)을 기다리는 경우 사용자가 시간을 할애할 수 있으므로 무시됩니다. 그러나 즉시 대상 지정을 확인하는 능력의 경우 A) 대상 데이터 서버 측 생성 B) 능력 취소 전에 특정 시간만 기다릴 것입니다.
+>
+> 우리는 거의 사용하지 않는 WaitNetSync에 대해 그러한 메커니즘을 갖고 있지 않았습니다.
+>
+> 나는 Fortnite가 이와 같은 것을 사용한다고 생각하지 않습니다. Fortnite의 무기 능력은 단일 포트나이트 전용 RPC로 특수한 경우 일괄 처리됩니다. 하나의 RPC는 능력을 활성화하고, 대상 데이터를 제공하고, 능력을 종료합니다. 따라서 무기 능력은 본질적으로 Battle Royale에서 이에 취약하지 않습니다.
+>
+> 제 생각에는 이것이 아마도 시스템 전체에서 해결될 수 있는 문제이지만 조만간 우리 스스로 변경 작업을 수행할 것으로 보이지는 않습니다. 언급한 경우에 대한 최대 지연을 포함하도록 WaitNetSync를 스팟 수정하는 것은 아마도 합리적인 작업이지만 다시 - 가까운 시일 내에 이 작업을 완료하지 않을 것입니다.
+
+
+3. 어떤 EGameplayEffectReplicationModedid Paragon과 Fortnite를 사용하며 각각을 언제 사용해야 하는지에 대한 Epic의 권장 사항은 무엇입니까?
+
+> 두 게임 모두 기본적으로 플레이어 제어 캐릭터에는 혼합 모드를 사용하고 AI 제어에는 최소 모드를 사용합니다(AI 미니언, 정글 크립, AIHusk 등). 이것이 내가 멀티플레이어 게임에서 시스템을 사용하는 대부분의 사람들에게 추천하고 싶은 것입니다. 이러한 설정은 프로젝트에 빠를수록 좋습니다.
+>
+> Fortnite는 최적화를 통해 몇 단계 더 나아갑니다. 실제로 시뮬레이션된 프록시에 대해 UAbilitySystemComponent를 전혀 복제하지 않습니다. 구성 요소 및 속성 하위 개체는 소유 포트나이트 플레이어 상태 클래스의 ::ReplicateSubobjects() 내부에서 건너뜁니다. 우리는 최소한의 복제 데이터를 능력 시스템 구성 요소에서 폰 자체의 구조로 푸시합니다(기본적으로 속성 값의 하위 집합과 비트마스크에서 복제하는 태그의 화이트리스트 하위 집합). 우리는 이것을 "프록시"라고 부릅니다. 수신 측에서는 폰에 복제된 프록시 데이터를 가져와서 플레이어 상태의 능력 시스템 구성 요소로 다시 푸시합니다. 따라서 FNBR의 각 플레이어에 대한 ASC가 있지만 직접 복제하지는 않습니다. 대신 폰의 최소 프록시 구조체를 통해 데이터를 복제한 다음 수신 측의 ASC로 다시 라우팅합니다. 이것은 A) 더 최소한의 데이터 세트 B) 폰 관련성을 활용하기 때문에 이점입니다.
+>
+> 그 이후로 수행된 다른 서버 측 최적화(복제 그래프 등)에 여전히 필요한지 확실하지 않으며 가장 유지 관리 가능한 패턴이 아닙니다.
+
+
+4. GameplayPrediction.h에 따라 GameplayEffects의 제거를 예측할 수 없으므로 GameplayEffects 제거에 대한 대기 시간의 영향을 완화하기 위한 전략이 있습니까? 예를 들어 느린 이동 속도를 제거할 때 현재 서버가 GameplayEffectremoval을 복제하여 플레이어의 캐릭터 위치를 스냅할 때까지 기다려야 합니다.
+
+> 어려운 일이고 좋은 답이 없습니다. 우리는 일반적으로 허용오차와 평활화로 이러한 문제를 우회했습니다. 능력 시스템과 캐릭터 이동 시스템과의 정확한 동기화가 좋지 않고 우리가 수정하고 싶은 부분에 전적으로 동의합니다.
+>
+> GE를 예측적으로 제거할 수 있는 선반이 있었지만 계속 진행하기 전에 모든 극단적인 경우를 해결할 수는 없었습니다. 캐릭터 이동에는 능력 시스템 및 가능한 이동 속도 수정자 등에 대해 아무것도 모르는 내부 저장된 이동 버퍼가 있기 때문에 이것이 모든 것을 해결하지는 못합니다. GE의 제거를 예측합니다.
+>
+> 정말 절박한 경우가 있다고 생각되면 이동 속도 GE를 억제하는 GE를 예측적으로 추가할 수 있습니다. 나는 이것을 직접 한 적이 없지만 이전에 그것에 대해 이론화한 적이 있습니다. 특정 유형의 문제를 해결하는 데 도움이 될 수 있습니다.
+
+
+5. 우리는 AbilitySystemComponent가 Paragon과 Fortnite의 PlayerState와 Action RPG 샘플의 캐릭터에 있다는 것을 알고 있습니다. 능력 시스템 구성 요소가 있어야 하는 위치에 대한 에픽의 내부 규칙, 지침 또는 권장 사항은 무엇입니까? 소유자는 무엇이어야 합니까?
+
+> 일반적으로 리스폰할 필요가 없는 것은 소유자와 아바타 액터가 같아야 합니다. AI 적, 건물, 세계 소품 등과 같은 모든 것.
+>
+> 재생성되는 모든 항목은 소유자와 아바타가 달라야 재생성 후 능력 시스템 구성 요소를 저장/재생성/복원할 필요가 없습니다. PlayerState는 모든 클라이언트에 복제되는 논리적 선택입니다(여기서 PlayerController는 아니다). 단점은 PlayerStates가 항상 관련이 있으므로 100명의 플레이어 게임에서 문제가 발생할 수 있다는 것입니다. (3번 질문에서 FN이 한 일에 대한 메모 참조).
+
+
+6. 소유자는 같지만 아바타가 다른 여러 능력 시스템 구성 요소를 가질 수 있습니까(예: 소유자가 PlayerState로 설정된 폰 및 무기/아이템/발사체)?
+
+> 내가 보는 첫 번째 문제는 소유 액터에서 IGameplayTagAssetInterface 및 IAbilitySystemInterface를 구현하는 것입니다. 전자가 가능할 수도 있습니다. 모든 ASC에서 태그를 집계하기만 하면 됩니다(단, HasAlMatchingGameplayTags는 교차 ASC 집계를 통해서만 충족될 수 있습니다. 각 ASC에 대한 호출을 전달하고 결과를 함께 OR하는 것만으로는 충분하지 않습니다.) 그러나 후자는 더 까다롭습니다. 어떤 ASC가 권위 있는 것입니까? 누군가가 GE를 신청하고 싶다면 어떤 사람이 받아야 합니까? 아마도 당신은 이것을 해결할 수 있지만 문제의 이 면은 가장 어려울 것입니다. 소유자는 그 아래에 여러 ASC를 가질 것입니다.
+>
+> 폰과 무기에 ASC를 분리하는 것은 그 자체로 의미가 있을 수 있습니다. 예를 들어, 무기를 설명하는 태그와 소유 폰을 설명하는 태그를 구별합니다. 아마도 무기에 부여된 태그가 소유자에게 "적용"되고 다른 어떤 것도 적용되지 않는다는 것이 합리적일 수 있습니다(예: 속성과 GE는 독립적이지만 소유자는 위에서 설명한 것처럼 소유 태그를 집계합니다). 이것은 효과가 있을 수 있다고 확신합니다. 그러나 동일한 소유자에게 여러 ASC를 보유하는 것은 위험할 수 있습니다.
+
+
+7. 서버가 소유 클라이언트에서 로컬로 예측된 능력의 재사용 대기시간을 덮어쓰지 않도록 하는 방법이 있습니까? 대기 시간이 긴 시나리오에서 이를 통해 소유 클라이언트는 로컬 쿨다운이 만료되었지만 여전히 서버에서 쿨다운 상태에 있을 때 기능을 다시 활성화하려고 "시도"합니다. 소유 클라이언트의 활성화 요청이 네트워크를 통해 서버에 도달할 때까지 서버는 휴지 상태가 아니거나 서버가 남은 밀리초 동안 활성화 요청을 대기열에 넣을 수 있습니다. 그렇지 않으면 대기 시간이 더 긴 클라이언트는 대기 시간이 더 짧은 클라이언트에 비해 기능을 다시 활성화할 수 있을 때까지 더 긴 지연 시간을 갖습니다. 이것은 쿨다운이 1초 미만일 수 있는 기본 공격과 같은 매우 낮은 쿨다운 능력에서 가장 분명합니다. 없으면' 서버가 로컬에서 예측한 능력의 재사용 대기시간을 덮어쓰는 것을 막는 방법, 능력 재활성화에 대한 긴 대기 시간의 영향을 완화하기 위한 Epic의 전략은 무엇입니까? 다른 예시 기반 방식으로 표현하자면 Epic은 지연 시간이 긴 플레이어가 로컬 예측을 통해 지연 시간이 짧은 플레이어와 동일한 속도로 공격하거나 활성화할 수 있도록 Paragon의 기본 공격 및 기타 능력을 어떻게 설계했습니까?
+
+> 짧은 대답은 이것을 막을 방법이 없으며 Paragon은 확실히 문제가 있었습니다. 대기 시간이 더 긴 연결은 기본 공격에서 더 낮은 ROF를 갖습니다.
+>
+> GE 지속 시간을 계산할 때 대기 시간을 고려한 "GE 조정"을 추가하여 이 문제를 해결하려고 했습니다. 기본적으로 서버가 총 GE 시간의 일부를 사용하도록 허용하여 GE 클라이언트 측의 유효 시간이 모든 대기 시간과 100% 일치하도록 합니다(변동이 여전히 문제를 일으킬 수 있음). 그러나 배송 가능한 상태에서 이 작업을 수행한 적이 없고 프로젝트가 빠르게 진행되었으며 완전히 해결하지 못했습니다.
+>
+> Fortnite는 무기 발사 속도에 대한 자체 부기를 수행합니다. 무기의 재사용 대기시간에 GE를 사용하지 않습니다. 이것이 귀하의 게임에 중요한 문제라면 이것을 추천합니다.
+
+
+8. GameplayAbilitySystem 플러그인에 대한 에픽의 로드맵은 무엇입니까? 에픽은 2019년 이후에 어떤 기능을 추가할 계획인가요?
+
+> 현재로서는 전반적으로 시스템이 매우 안정적이며 주요 새 기능을 작업하는 사람이 아무도 없다고 생각합니다. Fortnite 또는 UDN/pull 요청에서 버그 수정 및 약간의 개선이 때때로 이루어지지만 지금은 그게 전부입니다.
+>
+> 장기적으로 우리는 결국 "V2"나 큰 변화를 일으킬 것이라고 생각합니다. 우리는 이 시스템을 작성하면서 많은 것을 배웠고 우리가 많이 맞았고 많이 틀렸다고 느낍니다. 이러한 실수를 수정하고 위에서 지적한 치명적인 결함을 개선할 수 있는 기회를 갖고 싶습니다.
+>
+> V2가 나온다면 업그레이드 경로를 제공하는 것이 가장 중요할 것입니다. 우리는 V2를 만들지 않고 Fortnite를 V1에 영원히 남겨두지 않을 것입니다. 여전히 거의 확실히 수동으로 다시 작성해야 하지만, 가능한 한 많이 자동으로 마이그레이션되는 몇 가지 경로나 절차가 있을 것입니다.
+>
+> 우선 순위가 높은 수정 사항은 다음과 같습니다.
+> * 캐릭터 이동 시스템과의 상호 운용성이 향상되었습니다. 클라이언트 예측 통합.
+> * GE 제거 예측(질문 #4)
+> * GE 대기 시간 조정(질문 #8)
+> * 일괄 처리 RPC 및 프록시 구조와 같은 일반화된 네트워크 최적화. 대부분 우리가 Fortnite에 대해 수행했지만, 최소한 게임이 고유한 게임별 최적화를 보다 쉽게 작성할 수 있도록 보다 일반화된 형태로 분해하는 방법을 찾습니다.
+>
+> 내가 고려하는 더 일반적인 리팩터 유형 변경:
+> * GE가 스프레드시트 값을 직접 참조하는 것에서 근본적으로 벗어나고 싶습니다. 대신 매개변수를 내보낼 수 있고 이러한 매개변수는 스프레드시트 값에 바인딩된 더 높은 수준의 개체로 채워질 수 있습니다. 현재 모델의 문제는 GE가 곡선 테이블 행과의 긴밀한 결합으로 인해 공유할 수 없게 된다는 것입니다. 매개변수화를 위한 일반화된 시스템이 작성될 수 있고 V2 시스템의 토대가 될 수 있다고 생각합니다.
+> * UGameplayAbility에서 "정책"의 수를 줄입니다. ReplicationPolicy InstancingPolicy를 제거하겠습니다. 복제는 실제로 거의 필요하지 않으며 혼란을 야기합니다. 대신 FGameplayAbilitySpec 을 서브클래싱할 수 있는 UObject 로 만들어 InstancingPolicy 를 대체해야 합니다. 이것은 이벤트가 있고 청사진이 가능한 "인스턴스화되지 않은 능력 개체"여야 합니다. UGameplayAbility는 "실행당 인스턴스" 개체여야 합니다. 실제로 인스턴스화해야 하는 경우 선택 사항일 수 있습니다. 대신 "인스턴스되지 않은" 능력이 새 UGameplayAbilitySpec 개체를 통해 구현됩니다.
+> * 시스템은 "필터링된 GE 응용 프로그램 컨테이너"(더 높은 수준의 게임 플레이 로직을 가진 행위자에게 적용할 GE 데이터 드라이브), "중복 볼륨 지원"("필터링된 GE 응용 프로그램 컨테이너 적용 " 충돌 프리미티브 중첩 이벤트를 기반으로 함) 등이 있습니다. 이는 모든 프로젝트가 고유한 방식으로 구현하게 되는 빌딩 블록입니다. 그것들을 바로 잡는 것은 사소한 일이 아니므로 몇 가지 기본 구현을 제공하는 데 더 나은 일을 해야 한다고 생각합니다.
+> * 일반적으로 프로젝트를 시작하고 실행하는 데 필요한 상용구를 줄입니다. 별도의 모듈 "Ex 라이브러리" 또는 기본적으로 기본 히트스캔 무기나 패시브 능력과 같은 것을 제공할 수 있는 모듈일 수 있습니다. 이 모듈은 선택 사항이지만 신속하게 시작하고 실행할 수 있습니다.
+> * GameplayCues를 능력 시스템과 연결되지 않은 별도의 모듈로 옮기고 싶습니다. 여기에서 개선할 수 있는 부분이 많다고 생각합니다.
+
+
+> 이것은 제 개인적인 생각일 뿐 누구의 공약도 아닙니다. 가장 현실적인 조치는 새로운 엔진 기술 이니셔티브가 진행되고 능력 시스템이 업데이트되어야 하고 그 때가 이런 종류의 작업을 수행할 때일 것입니다. 이러한 이니셔티브는 스크립팅, 네트워킹 또는 물리학/캐릭터 이동과 관련될 수 있습니다. 이것은 모두 매우 먼 미래를 내다보고 있기 때문에 일정에 대한 약속이나 추정을 할 수 없습니다.
+
+**⬆ 맨 위로 돌아가기**
+
+<a name="resources-daveratti-community2"></a>
+#### 11.1.2 커뮤니티 질문 2
+Dave Ratti와의 커뮤니티 회원 iniside의 Q&A:
+
+1. 분리된 고정 틱에 대한 지원이 계획되어 있습니까? 나는하고 싶어요
+게임 스레드를 고정하고(예: 30/60fps) 렌더링 스레드를
+미친듯이 달려라. 나는 이것이 우리가 미래에 기대해야 하는 것인지 아니면
+게임 플레이가 어떻게 작동해야 하는지에 대한 몇 가지 가정을 하기 위해 아닙니다.
+물리학에 대한 고정된 비동기 틱이 있기 때문에 주로 묻습니다.
+이것은 시스템의 나머지 부분이 어떻게 작동하는지에 대한 질문을 제기합니다.
+미래. 나는 고정 틱 게임을 할 수있는 능력이 있다는 것을 숨기지 않습니다
+엔진의 나머지 부분의 틱 속도도 고정하지 않은 스레드는
+이상해.
+
+> 렌더링 프레임 속도와 게임 스레드 틱 프레임 속도를 분리할 계획은 없습니다. 이러한 시스템의 복잡성과 이전 엔진 버전과의 역호환성을 유지해야 하는 요구 사항으로 인해 우주선이 계속해서 발생하고 있다고 생각합니다.
+>
+> 대신, 우리가 가고 있는 방향은 게임 스레드와 독립적으로 고정된 틱 속도로 실행되는 비동기식 "물리 스레드"를 사용하는 것입니다. 고정된 속도로 실행되어야 하는 것들이 여기에서 실행될 수 있으며 게임 스레드/렌더링은 항상 있는 방식으로 작동할 수 있습니다.
+>
+> Network Prediction이 Independent Ticking 및 Fixed Ticking 모드라고 하는 것을 지원한다는 점을 명확히 하는 것이 좋습니다. 내 장기 계획은 Independent Ticking을 현재 네트워크 예측에서 대략적으로 유지하는 것입니다. 여기에서는 게임 스레드에서 가변 프레임 속도로 실행되고 "그룹/세계" 예측이 없으며 고전적인 "클라이언트가 자신의 폰을 예측하고 소유 배우" 모델. 그리고 Fixed Ticking은 비동기 물리를 사용하는 것으로 물리 개체 및 기타 클라이언트/폰/차량/등과 같은 클라이언트 제어/소유가 아닌 액터를 예측할 수 있습니다.
+
+
+2. Network Prediction의 통합에 대한 계획이 있습니까?
+능력 시스템으로 봐? 예를 들어 고정 프레임 기능
+활성화(그래서 서버는 능력이 있었던 프레임을 얻습니다.
+활성화되고 예측 키 대신 실행되는 작업) ?
+
+> 예, 계획은 능력 시스템의 예측 키를 다시 작성/제거하고 네트워크 예측 구성으로 교체하는 것입니다. NetworkPredictionExtras의 MockAbility 예제는 이것이 어떻게 작동하는지 보여주지만 GAS에서 요구하는 것보다 더 "하드 코딩"됩니다.
+>
+> 주요 아이디어는 ASC의 RPC에서 명시적 클라이언트->서버 예측 키 교환을 제거하는 것입니다. 더 이상 예측 창이나 범위가 지정된 예측 키가 없습니다. 대신 모든 것이 NetworkPrediction 프레임 주위에 고정됩니다. 중요한 것은 클라이언트와 서버가 일이 발생할 때 동의한다는 것입니다. 예는 다음과 같습니다.
+>
+> * 능력이 활성화/종료/취소되었을 때
+> * 게임 플레이 효과 적용/제거 시
+> * 속성 값(속성 값이 프레임 X에 있었던 것)
+>
+> 일반적으로 능력 시스템 수준에서 수행할 수 있다고 생각합니다. 그러나 실제로 UGameplayAbility 내부의 사용자 정의 로직을 완전히 롤백 가능하게 만드는 것은 여전히 더 많은 작업이 필요합니다. 완전히 롤백 가능하고 보다 제한된 기능 세트에 액세스하거나 롤백 친화적으로 표시된 능력 작업에만 액세스할 수 있는 UGameplayAbility 서브클래스를 갖게 될 수 있습니다. 그런 것. 또한 애니메이션 이벤트와 루트 모션 및 이러한 이벤트가 처리되는 방식에도 많은 영향이 있습니다.
+>
+> 좀 더 명확한 답변을 드리고 싶지만 GAS를 다시 만지기 직전에 기초를 다지는 것이 정말 중요합니다. 더 높은 수준의 시스템이 변경되기 전에 움직임과 물리학이 견고해야 합니다.
+
+
+3. Network Prediction 개발을
+본점? 거짓말이 아니라 최신 코드를 확인하고 싶습니다.
+그 상태에 관계없이.
+
+> 우리는 그것을 위해 노력하고 있습니다. 시스템 작업은 여전히 모두 NetworkPrediction에서 수행되고(NetworkPhysics.h 참조) 기본 비동기 물리 항목은 모두 사용 가능해야 합니다(RewindData.h 등). 그러나 Fortnite에는 분명히 공개할 수 없는 사용 사례가 있습니다. 버그, 성능 최적화 등을 통해 작업하고 있습니다.
+>
+> 자세한 내용: 이 시스템의 초기 버전에서 작업할 때 우리는 사물의 "프론트 엔드", 즉 상태와 시뮬레이션이 정의되고 작성되는 방식에 매우 집중했습니다. 우리는 그곳에서 많은 것을 배웠습니다. 그러나 비동기 물리학이 온라인에 등장하면서 우리는 초기 추상화 중 일부를 버리는 대신 이 시스템에서 실제로 작동하도록 하는 데 훨씬 더 집중했습니다. 여기의 목표는 진짜가 작동하고 사물을 통일할 때 다시 원을 그리는 것입니다. 예를 들어 "프론트 엔드"로 돌아가서 현재 작업 중인 기술의 핵심 부분 위에 최종 버전을 만듭니다.
+
+
+4. 한동안 메인에 게임플레이를 보내기 위한 플러그인이 있었습니다.
+메시지(이벤트/메시지 버스처럼 보임)가 제거되었습니다. 어느
+복원할 계획입니까? 게임 기능/모듈식 게임 플레이 플러그인을 사용하면
+일반 이벤트 버스 디스패처가 있으면 매우 유용합니다.
+
+> GameplayMessages 플러그인을 말씀하시는 것 같습니다. 이것은 아마도 어느 시점에 돌아올 것입니다. API는 아직 확정되지 않았으며 작성자는 아직 공개할 의도가 없었습니다. 모듈식 게임플레이 디자인에 유용해야 한다는 데 동의합니다. 하지만 제 영역이 아니기 때문에 더 많은 정보가 없습니다.
+
+
+5. 최근에 비동기 고정 물리학과 결과를 가지고 놀았습니다.
+장래에 NP 업데이트가 있을 예정이라면
+나는 아마 그냥 놀고 기다릴 것입니다.
+여전히 전체 엔진을 고정 틱으로 전환해야 하고 다른 한편으로는
+나는 물리학을 33ms로 유지하려고 노력합니다. 좋은 것을 만들지 않는 것
+모든 것이 30fps(:.
+
+Async에 대한 작업이 있음을 확인했습니다.
+CharacterMovementComponent, 그러나 이것이 네트워크를 사용할 것인지 확실하지 않음
+예측인가, 아니면 별도의 노력인가?
+
+그걸 눈치채고 나도 가서 내 커스텀을 구현해 봤다.
+고정된 틱 속도로 비동기 이동, 제대로 작동했지만 그 위에
+또한 보간을 위해 별도의 업데이트를 추가해야 했습니다. 설정
+고정 33ms에서 별도의 작업자 스레드에서 시뮬레이션 틱을 실행하는 것이었습니다.
+업데이트, 계산 수행, 결과 저장 및 게임에서 보간
+스레드가 현재 프레임 속도와 일치하도록 합니다. 완벽하지는 않지만 작업을 수행했습니다.
+완료.
+
+내 질문은 이것이 설정하기 더 쉬운 것이라면
+앞으로 작성해야 할 상용구 코드가 상당히 많기 때문에
+(보간 부분) 특히 효율적이지 않습니다.
+각 움직이는 개체를 개별적으로 보간합니다.
+
+비동기 항목은 정말 흥미롭습니다.
+실제로 고정 업데이트 속도로 게임 시뮬레이션을 실행합니다.
+고정 스레드가 필요하지 않음) 더 예측 가능한 결과를 얻을 수 있습니다. 이거야?
+앞으로 의도된 것, 또는 더 많은 이점이 있는 것
+시스템 선택 ? 내가 기억하는 한 액터 변환은 업데이트되지 않습니다.
+async 및 블루프린트는 완전히 스레드로부터 안전하지 않습니다. 다시 말해
+더 많은 프레임워크에서 지원될 계획입니다.
+레벨 또는 각 게임이 자체적으로 해결해야 하는 것?
+
+> 비동기 CharacterMovementComponent
+>
+> 이것은 기본적으로 CMC를 물리 스레드에 그대로 이식하는 초기 프로토타입/실험입니다. 아직 CMC의 미래로 보지는 않지만 그렇게 발전할 수 있습니다. 지금은 네트워킹 지원이 없기 때문에 내가 정말로 따르고 싶은 것이 아닙니다. 이를 수행하는 사람들은 대부분 이 시스템이 추가할 입력 대기 시간과 이를 완화할 수 있는 방법을 측정하는 데 관심이 있습니다.
+>
+> 여전히 전체 엔진을 고정된 틱으로 전환해야 하며 다른 한편으로는 물리학을 33ms로 유지하려고 합니다. 모든 것이 30fps(:.
+>
+> 비동기 항목은 정말 흥미롭습니다. 고정된 업데이트 속도로 게임 시뮬레이션을 실행할 수 있기 때문입니다(고정 스레드가 필요하지 않음)
+>
+> 네. 여기서 목표는 비동기 물리를 활성화하면 엔진을 가변 틱 속도로 실행할 수 있는 반면 물리 및 "코어" 게임플레이 시뮬레이션은 고정 속도로 실행할 수 있다는 것입니다(예: 캐릭터 이동, 차량, GAS 등).
+>
+> 다음은 지금 활성화하기 위해 설정해야 하는 cvar입니다.
+> `p.DefaultAsyncDt=0.03333`
+> `p.RewindCaptureNumFrames=64`
+>
+> Chaos는 물리 상태에 대한 보간을 제공합니다(예: UPrimitiveComponent로 다시 푸시되고 게임 코드에서 볼 수 있는 변환). 이제 cvar인 `p.AsyncInterpolationMultiplier`가 있으며, 보고 싶은 경우 이를 제어합니다. 추가 코드를 작성하지 않고도 물리 바디의 부드럽고 연속적인 움직임을 볼 수 있습니다.
+>
+> 비물리적 상태를 보간하려면 지금 당장 수행해야 합니다. 예는 비동기 물리 스레드에서 업데이트(체크)하고 싶지만 게임 스레드에서 부드러운 연속 보간을 확인하여 모든 렌더 프레임이 쿨다운 시각화가 업데이트되도록 하려는 쿨다운과 같습니다. 우리는 결국 이것에 도달할 것이지만 아직 예가 없습니다.
+>
+> 작성할 상용구 코드가 상당히 많습니다.
+>
+> 네, 그래서 지금까지 시스템의 큰 문제였습니다. 우리는 숙련된 프로그래머가 성능과 안전성을 극대화하는 데 사용할 수 있는 인터페이스를 제공하고자 합니다. 따라서 CharacterMoverment와 같은 것은 성능을 최대화하기 위해 많은 사용자 지정 작업을 수행할 수 있습니다. 예를 들어 템플릿 코드 작성 및 일괄 업데이트 수행, 확장, 업데이트 루프를 개별 단계로 나누기 등입니다. 우리는 좋은 "낮은 수준" 인터페이스를 이 사용 사례에 대한 비동기 스레드 및 롤백 시스템. 그리고 이 경우에도 - 캐릭터 이동 시스템 자체가 자체 방식으로 확장 가능한 것은 여전히 합리적입니다.
+>
+> 하지만 자체 "시스템"이 실제로 필요하지 않은 단순한 게임플레이 개체에는 이것이 허용되지 않는다는 것을 알고 있습니다. Unreal과 더 관련이 있는 것이 필요한 것입니다. 예를 들어 리플렉션 시스템 사용, 일반 청사진 지원 등. 다른 스레드에서 청사진이 사용되는 예가 있습니다(BlueprintThreadSafe 키워드 및 애니메이션 시스템이 작업 중인 대상 참조). 그래서 언젠가는 이런 형태가 있을 것이라고 생각합니다. 그러나 다시, 우리는 아직 거기에 있지 않습니다.
+>
+> 보간법에 대해 질문하신 것으로 알고 있지만 이것이 일반적인 답변입니다. 지금은 NetSerialize, ShouldReconcile, Interpolate 등과 같은 모든 작업을 수동으로 수행해야 하지만 결국 "만약 당신이 그냥 사용하고 싶다면 리플렉션 시스템을 사용하면 이 항목을 수동으로 작성할 필요가 없습니다." 모든 사람이 리플렉션 시스템을 사용하도록 *강요*하고 싶지는 않습니다. 리플렉션 시스템이 시스템의 가장 낮은 수준을 사용하고 싶지 않다고 생각하는 다른 제한 사항을 부과하기 때문입니다.
+>
+> 그리고 이것을 내가 앞서 말한 것과 다시 연결하기 위해 - 지금 우리는 몇 가지 매우 구체적인 예제가 작동하고 성능을 발휘하도록 하는 데 집중하고 있습니다. 그런 다음 다시 프런트 엔드로 관심을 돌려 사용하기 쉽고 반복할 수 있도록 만들 것입니다. , 다른 모든 사람들이 사용할 수 있도록 상용구 줄이기 등.
+
 
 **[⬆ Back to Top](#table-of-contents)**
 
