@@ -322,7 +322,7 @@ The `AbilitySystemComponent` (`ASC`) 가 가장 중요하다. 시스템과 모�
 `ASC`가 부착된`Actor`는 `ASC`의`OwnerActor`라고 합니다. 'ASC'의 물리적 표현인 '액터'를 '아바타 액터'라고 합니다. 'OwnerActor'와 'AvatarActor'는 MOBA 게임에서 단순한 AI 미니언의 경우와 같은 'Actor'일 수 있습니다. 그들은 또한 'OwnerActor'가 'PlayerState'이고 'AvatarActor'가 영웅의 'Character' 클래스인 MOBA 게임에서 플레이어가 제어하는 영웅의 경우와 같이 다른 'Actors'일 수 있습니다. 대부분의 '액터'에는 'ASC'가 있습니다. '액터'가 리스폰되고 스폰 사이에 '속성' 또는 '게임플레이 효과'의 지속성이 필요한 경우(MOBA의 영웅처럼) 'ASC'의 이상적인 위치는 'PlayerState'입니다.
 
 
-(내생각: ASC가 있는 액터는 오너. 두 번째 줄은 모르겠음. 보통은 액터에 ASC가 바로 부착되어 있음. 그런데 외부에서 입력을 받거나 죽고 부활할 때 기존 상태를 가지고 있어야 하는(아이템 같은 거) 애들은 ASC가 PlayerState에 있고 캐릭터는 따로 두는 것 같음
+( 외부에서 입력을 받거나 죽고 부활할 때 기존 상태를 가지고 있어야 하는(아이템 같은 거) 애들은 ASC가 PlayerState에 있고 캐릭터는 따로 두는 것 같음)
 
 **Note:** If your `ASC` is on your `PlayerState`, then you will need to increase the `NetUpdateFrequency` of your `PlayerState`. It defaults to a very low value on the `PlayerState` and can cause delays or perceived lag before changes to things like `Attributes` and `GameplayTags` happen on the clients. Be sure to enable [`Adaptive Network Update Frequency`](https://docs.unrealengine.com/en-US/Gameplay/Networking/Actors/Properties/index.html#adaptivenetworkupdatefrequency), Fortnite uses it.
 
@@ -332,8 +332,6 @@ Both, the `OwnerActor` and the `AvatarActor` if different `Actors`, should imple
 
 'OwnerActor'와 'AvatarActor'가 다른 'Actors'인 경우 'IAbilitySystemInterface'를 구현해야 합니다. 이 인터페이스에는 'ASC'에 대한 포인터를 반환하는 'UAbilitySystemComponent* GetAbilitySystemComponent() const'라는 재정의해야 하는 함수가 하나 있습니다. 'ASC'는 이 인터페이스 기능을 찾아 시스템 내부에서 서로 상호 작용합니다.
 
-( 아마 ASC가 PlayerState에 있다고 했으니까 OwnerActor를 쓸 때 ASC를 못 찾아서 그런 게 아닐까)
-
 The `ASC` holds its current active `GameplayEffects` in `FActiveGameplayEffectsContainer ActiveGameplayEffects`.
 
 'ASC'는 'FACiveGameplayEffectsContainer ActiveGameplayEffects'에 현재 활성인 'GameplayEffects'를 보유합니다.
@@ -341,8 +339,6 @@ The `ASC` holds its current active `GameplayEffects` in `FActiveGameplayEffectsC
 The `ASC` holds its granted `Gameplay Abilities` in `FGameplayAbilitySpecContainer ActivatableAbilities`. Any time that you plan to iterate over `ActivatableAbilities.Items`, be sure to add `ABILITYLIST_SCOPE_LOCK();` above your loop to lock the list from changing (due to removing an ability). Every `ABILITYLIST_SCOPE_LOCK();` in scope increments `AbilityScopeLockCount` and then decrements when it falls out of scope. Do not try to remove an ability inside the scope of `ABILITYLIST_SCOPE_LOCK();` (the clear ability functions check `AbilityScopeLockCount` internally to prevent removing abilities if the list is locked).
 
 'ASC'는 'FGameplayAbilitySpecContainer ActivatableAbilities'에 부여된 'Gameplay Abilities'를 보유합니다. 'ActivatableAbilities.Items'를 반복할 계획이라면 언제든지 루프 위에 'ABILITYLIST_SCOPE_LOCK();'을 추가하여 (능력 제거로 인해) 목록이 변경되지 않도록 잠급니다. 범위의 모든 `ABILITYLIST_SCOPE_LOCK();`은 `AbilityScopeLockCount`를 증가시킨 다음 범위를 벗어날 때 감소합니다. `ABILITYLIST_SCOPE_LOCK();` 범위 내에서 능력을 제거하려고 하지 마십시오(목록이 잠겨 있는 경우 능력 제거를 방지하기 위해 능력 지우기 기능은 내부적으로 `AbilityScopeLockCount`를 확인합니다).
-
-(FGameplayAbilitySpecContainer ActivatableAbilities에 ASC의 Gameplay Abilities가 들어있다. ActivatableAbilities.Items의 능력을 반복 시킬 수 있지만, ABILITYLIST_SCOPE_LOCK();를 꼭 추가해라. Items 내부가 변하지 않도록(변하면 안 되는 듯). 내부적으로 AbilityScopeLockCount변수를 활용해서 락이 걸린 개수를 확인한다. (중첩 락이 가능))
 
 <a name="concepts-asc-rm"></a>
 ### 4.1.1 Replication Mode
